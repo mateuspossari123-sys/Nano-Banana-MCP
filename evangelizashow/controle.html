@@ -57,6 +57,8 @@
   #letras li:hover { background: #0b2c45; }
   #letras li.atual { color: var(--texto); background: #0d3350; border-left-color: var(--ouro); font-weight: 700; }
   #proxima { color: var(--suave); }
+  .efeitos { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+  #bpm { font: 800 22px "Playfair Display", Georgia, serif; color: var(--ouro); min-width: 90px; }
   footer { padding: 0 20px 20px; color: var(--suave); font-size: 13px; }
   kbd { background: var(--painel); border: 1px solid var(--borda); border-radius: 5px; padding: 1px 6px; font-family: inherit; color: var(--texto); }
 </style>
@@ -88,6 +90,17 @@
       <button class="grande" id="avancar">Avançar →</button>
     </div>
     <div class="cartao">
+      <div class="rotulo">Vinhetas e ritmo</div>
+      <div class="efeitos">
+        <button data-cmd="vinheta:explosao">Explosão do logo (L)</button>
+        <button data-cmd="vinheta:revelacao">Revelação (V)</button>
+        <button data-cmd="vinheta:cortina">Cortina (C)</button>
+        <div class="espaco"></div>
+        <span id="bpm"></span>
+        <button data-cmd="tap">Tap tempo (K)</button>
+      </div>
+    </div>
+    <div class="cartao">
       <div class="rotulo">No painel agora</div>
       <h2 id="atual"></h2>
       <ol id="letras"></ol>
@@ -102,13 +115,15 @@
 <footer>
   <kbd>→</kbd> <kbd>Espaço</kbd> <kbd>PageDown</kbd> avançar (letra por letra, depois próxima cena) ·
   <kbd>←</kbd> <kbd>PageUp</kbd> voltar · <kbd>↓</kbd> <kbd>↑</kbd> pular cena ·
-  <kbd>B</kbd> tela preta · <kbd>T</kbd> teste · <kbd>P</kbd> prévia na saída.
+  <kbd>B</kbd> tela preta · <kbd>L</kbd> <kbd>V</kbd> <kbd>C</kbd> vinhetas ·
+  <kbd>K</kbd> bata no ritmo da música (3 toques ou mais) · <kbd>T</kbd> teste · <kbd>P</kbd> prévia na saída.
   Na janela da saída: duplo clique = tela cheia.
 </footer>
 
 <script src="config.js"></script>
 <script src="roteiro.js"></script>
 <script src="motor.js"></script>
+<script src="show.js"></script>
 <script>
   const $ = id => document.getElementById(id);
   const motor = new LED.Motor($('tela'), { previa: true });
@@ -129,8 +144,12 @@
 
   function resumo(c) {
     if (c.contagem) return c.contagem.ate ? `Contagem até ${c.contagem.ate}` : `Contagem de ${c.contagem.minutos} min`;
-    if (c.letras) return `${c.letras.length} slides de letra`;
-    return (c.titulo || '').replace(/\*/g, '').replace(/\n/g, ' ');
+    const partes = [];
+    if (c.entrada) partes.push(`entrada: ${c.entrada}`);
+    if (c.fundo && typeof c.fundo === 'string') partes.push(c.fundo);
+    if (c.letras) partes.push(`${c.letras.length} slides de letra`);
+    else if (c.titulo) partes.push(c.titulo.replace(/\*/g, '').replace(/\n/g, ' '));
+    return partes.join(' · ');
   }
 
   function desenharInterface() {
@@ -165,6 +184,7 @@
     $('blackout').classList.toggle('ativo', estado.blackout);
     $('teste').classList.toggle('ativo', estado.teste);
     $('previa').classList.toggle('ativo', estado.preview);
+    $('bpm').textContent = `${(estado.ritmo || { bpm: ROTEIRO.bpm || 120 }).bpm} BPM`;
   }
 
   $('abrir').onclick = () => {
@@ -175,6 +195,9 @@
   $('blackout').onclick = () => comando('blackout');
   $('teste').onclick = () => comando('teste');
   $('previa').onclick = () => comando('previa');
+  document.querySelectorAll('[data-cmd]').forEach(b => { b.onclick = () => comando(b.dataset.cmd); });
+  // Sem isso, o Espaço do passador "clicaria" de novo no último botão usado.
+  addEventListener('click', ev => { const b = ev.target.closest('button'); if (b) b.blur(); });
 
   addEventListener('keydown', ev => {
     const cmd = LED.teclaParaComando(ev);

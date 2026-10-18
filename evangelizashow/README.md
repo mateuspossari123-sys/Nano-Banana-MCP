@@ -46,6 +46,8 @@ Se ele preferir outra arrumação, basta mudar os valores de `saida` em `config.
 | B ou . | tela preta (com fade) |
 | T | padrão de teste |
 | P | prévia do palco na saída, para ver como fica |
+| L / V / C | vinheta do logo: explosão / revelação / cortina |
+| K | tap tempo: bata 3 vezes ou mais no ritmo da música |
 
 Também dá para clicar direto numa cena ou numa linha de letra no controle.
 
@@ -64,6 +66,33 @@ todos os campos. Os principais são:
   `gradiente`, `preto`) ou um vídeo/imagem da pasta `midia/`;
 - `faixa`: texto que corre nas tiras laterais;
 - `contagem`: relógio regressivo, por exemplo `{ ate: '19:30' }`.
+
+## Efeitos de show e vinhetas
+
+Os efeitos de show **pulsam na batida da música**. O roteiro começa em 120 BPM e,
+durante o show, o operador acerta o ritmo batendo **K** junto com a música (ou no
+botão *Tap tempo*). Tudo fica nas cores da identidade: azul, dourado e creme.
+
+| Fundo | O que faz |
+|---|---|
+| `varredura` | fachos de luz varrendo o palco, como moving heads |
+| `pulso` | anéis saindo do centro a cada batida; as tiras acendem uma por vez |
+| `feixes` | barras de luz correndo pelos 9 m (o desenho muda a cada 8 batidas) |
+| `tunel` | molduras douradas vindo do centro para fora |
+| `brilhos` | chuva de brilho dourado |
+
+| Vinheta | O que faz |
+|---|---|
+| `explosao` (L) | clarão, onda de choque e faíscas, com o logo surgindo no centro |
+| `revelacao` (V) | um facho de luz atravessa o palco e revela o logo e "Evangeliza*show*" |
+| `cortina` (C) | barras douradas cobrem o painel, o logo aparece e as barras abrem a cena |
+
+As vinhetas podem ser disparadas a qualquer momento, ou usadas como **passagem**
+entre cenas com `entrada: 'cortina'` (ou outra) na cena. Nesse caso, a troca de
+cena acontece por baixo da vinheta.
+
+Nenhum efeito pisca a tela inteira em ritmo rápido. Mesmo assim, evite subir o
+BPM muito acima de 150 no `pulso` e nos `feixes`.
 
 ## Vídeos e imagens
 

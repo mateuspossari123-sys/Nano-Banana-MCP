@@ -4,6 +4,7 @@
  * Campos de uma cena (todos opcionais, menos "nome"):
  *   nome        nome que aparece só para o operador
  *   fundo       efeito animado: 'sim' (padrão) | 'gradiente' | 'raios' | 'particulas' | 'estrelas' | 'ondas' | 'preto'
+ *               efeitos de show, que pulsam na batida: 'varredura' | 'pulso' | 'feixes' | 'tunel' | 'brilhos'
  *               ou mídia:  { video: 'midia/arquivo.mp4', modo: 'panorama' }
  *                          { imagem: 'midia/arquivo.jpg', modo: 'central' }
  *               modos:  'panorama' → arquivo 2304×512, ocupa os 9 m (central + laterais)
@@ -16,10 +17,15 @@
  *   faixa       texto que corre nas tiras laterais
  *   contagem    { minutos: 5 }  ou  { ate: '19:30' }  — mostra relógio regressivo no central
  *   logo        true → mostra o logo (ROTEIRO.logo) no painel central
+ *   entrada     vinheta que faz a passagem para esta cena: 'explosao' | 'revelacao' | 'cortina'
+ *
+ * Detalhes dos efeitos e vinhetas: show.js.
  */
 window.ROTEIRO = {
   evento: 'Evangelizashow — Comunidade SIM — sábado, 21/11, 19h30',
   logo: 'midia/logo.png',
+  assinatura: 'Evangeliza*show*',   // texto da vinheta "revelação"
+  bpm: 120,                         // batida inicial; no show, ajuste com tap tempo (tecla K)
 
   // Paleta da identidade: azul profundo, azul do brilho, dourado.
   cores: ['#021220', '#0e4166', '#d9b36a'],
@@ -39,15 +45,17 @@ window.ROTEIRO = {
     },
     {
       nome: 'Abertura',
-      fundo: 'raios',
-      cores: ['#021220', '#d9b36a', '#f0d49a'],
+      entrada: 'revelacao',
+      fundo: 'varredura',
+      cores: ['#021220', '#0e4166', '#d9b36a'],
       logo: true,
       titulo: 'Evangeliza*show*',
     },
     {
       nome: 'Música 1',
-      fundo: 'gradiente',
-      cores: ['#021220', '#0e4166', '#2a6f9f'],
+      entrada: 'cortina',
+      fundo: 'pulso',
+      cores: ['#021220', '#0e4166', '#d9b36a'],
       titulo: 'Nome da música 1',
       subtitulo: 'Artista',
       letras: [
@@ -58,14 +66,32 @@ window.ROTEIRO = {
     },
     {
       nome: 'Música 2',
-      fundo: 'ondas',
-      cores: ['#021220', '#d9b36a', '#2c6e9e'],
+      entrada: 'cortina',
+      fundo: 'feixes',
+      cores: ['#021220', '#0e4166', '#d9b36a'],
       titulo: 'Nome da música 2',
       subtitulo: 'Artista',
       letras: [
         'Linha um\nlinha dois',
         'Linha três\nlinha quatro',
       ],
+    },
+    {
+      nome: 'Música 3',
+      entrada: 'explosao',
+      fundo: 'tunel',
+      cores: ['#021220', '#0e4166', '#d9b36a'],
+      titulo: 'Nome da música 3',
+      subtitulo: 'Artista',
+      letras: [
+        'Linha um\nlinha dois',
+      ],
+    },
+    {
+      nome: 'Louvor (sem letra)',
+      fundo: 'brilhos',
+      cores: ['#021220', '#0e4166', '#d9b36a'],
+      faixa: 'Evangelizashow  ✦  ',
     },
     {
       nome: 'Pregação',
@@ -80,6 +106,7 @@ window.ROTEIRO = {
     },
     {
       nome: 'Encerramento',
+      entrada: 'explosao',
       fundo: 'raios',
       cores: ['#021220', '#d9b36a', '#f0d49a'],
       logo: true,

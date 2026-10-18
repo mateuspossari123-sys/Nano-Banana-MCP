@@ -264,6 +264,8 @@
       this.estado = { cena: 0, linha: -1, blackout: false, teste: false, preview: false };
       this.preto = 0;
       this.trocaEm = -1e9;
+      this.fade = this.cfg.transicao;
+      this.vinheta = null;
       this.linhaEm = 0;
       this.midia = {};
       this.rot.cenas.forEach(c => this.midiaDe(c.fundo));
@@ -317,9 +319,19 @@
         const f = this.foto.getContext('2d');
         f.clearRect(0, 0, this.W, this.H);
         f.drawImage(this.palco, 0, 0);
-        this.trocaEm = performance.now();
+        // Cena com "entrada": a vinheta cobre o painel e a troca acontece por baixo dela.
+        const tipo = this.rot.cenas[novo.cena].entrada, v = VINHETAS[tipo];
+        if (v) {
+          this.vinheta = { tipo: tipo, t0: Date.now() };
+          this.trocaEm = performance.now() + v.cobre * v.dur * 1000;
+          this.fade = 0.15;
+        } else {
+          this.trocaEm = performance.now();
+          this.fade = this.cfg.transicao;
+        }
         this.entrar(novo.cena);
       }
+      if (novo.vinheta && (!this.estado.vinheta || novo.vinheta.t0 !== this.estado.vinheta.t0)) this.vinheta = novo.vinheta;
       if (novo.linha !== this.estado.linha || novo.cena !== this.estado.cena) this.linhaEm = performance.now();
       this.estado = Object.assign({}, novo);
     }
@@ -343,12 +355,13 @@
         this.desenharTeste(p, t);
       } else {
         this.desenharCena(p, this.rot.cenas[this.estado.cena], t, agora);
-        const prog = (agora - this.trocaEm) / (this.cfg.transicao * 1000);
+        const prog = (agora - this.trocaEm) / (this.fade * 1000);
         if (prog < 1) {
-          p.globalAlpha = 1 - prog;
+          p.globalAlpha = Math.min(1, 1 - prog);
           p.drawImage(this.foto, 0, 0);
           p.globalAlpha = 1;
         }
+        this.desenharVinheta(p);
       }
       p.restore();
 
@@ -359,14 +372,32 @@
       else this.mapear();
     }
 
+    desenharVinheta(p) {
+      const v = this.vinheta, def = v && VINHETAS[v.tipo];
+      if (!def) return;
+      const prog = (Date.now() - v.t0) / (def.dur * 1000);
+      if (prog < 0 || prog >= 1) return;
+      p.save();
+      def.desenhar(p, this.W, this.H, prog, this);
+      p.restore();
+    }
+
+    // Batida da música: BPM do roteiro ou do tap tempo (tecla K). Usa o relógio do
+    // computador para que a saída e a prévia do operador pulsem juntas.
+    batida() {
+      const r = this.estado.ritmo || { bpm: this.rot.bpm || 120, t0: 0 };
+      const total = ((Date.now() - r.t0) / 60000) * r.bpm;
+      return { bpm: r.bpm, total: total, n: Math.floor(total), fase: total - Math.floor(total) };
+    }
+
     desenharCena(p, cena, t, agora) {
       const cores = cena.cores || this.rot.cores || CORES_PADRAO;
-      const f = cena.fundo || 'sim';
+      const f = cena.fundo || 'sim', b = this.batida();
       if (typeof f === 'string') {
-        (EFEITOS[f] || EFEITOS.sim)(p, this.W, this.H, t, cores);
+        (EFEITOS[f] || EFEITOS.sim)(p, this.W, this.H, t, cores, b);
       } else {
         const modo = f.modo || 'panorama';
-        if (modo === 'central') (EFEITOS[cena.efeitoLaterais] || EFEITOS.sim)(p, this.W, this.H, t, cores);
+        if (modo === 'central') (EFEITOS[cena.efeitoLaterais] || EFEITOS.sim)(p, this.W, this.H, t, cores, b);
         const el = this.midiaDe(f), d = dimensoes(el);
         if (d && modo === 'mapeado') {
           const m = this.mapa.getContext('2d');
@@ -399,6 +430,12 @@
       } else if (this.estado.linha >= 0 && cena.letras) {
         const linhas = cena.letras[this.estado.linha].split('\n');
         blocos.push({ linhas: linhas, o: LETRA, h: C.h - 2 * margem });
+        // Sombra suave atrás da letra: sobre efeitos fortes ela continua legível.
+        const g = p.createRadialGradient(C.x + C.w / 2, C.y + C.h / 2, 0, C.x + C.w / 2, C.y + C.h / 2, C.w * 0.55);
+        g.addColorStop(0, 'rgba(2,18,32,0.7)');
+        g.addColorStop(1, 'rgba(2,18,32,0)');
+        p.fillStyle = g;
+        p.fillRect(C.x, C.y, C.w, C.h);
       } else {
         const logo = cena.logo && this.logo && this.logo.complete && this.logo.naturalWidth;
         const acompanhado = logo || cena.subtitulo;
@@ -548,9 +585,15 @@
     }
   }
 
+  const batidas = [];
+
   function comandar(e, cmd, rot) {
     const s = Object.assign({}, e), n = rot.cenas.length;
     const letras = i => (rot.cenas[i].letras || []).length;
+    if (typeof cmd === 'string' && cmd.startsWith('vinheta:')) {
+      s.vinheta = { tipo: cmd.slice(8), t0: Date.now() };
+      return s;
+    }
     if (typeof cmd === 'object') {
       s.cena = Math.max(0, Math.min(n - 1, cmd.cena));
       s.linha = cmd.linha == null ? -1 : cmd.linha;
@@ -570,6 +613,17 @@
       case 'blackout': s.blackout = !s.blackout; break;
       case 'teste': s.teste = !s.teste; break;
       case 'previa': s.preview = !s.preview; break;
+      case 'tap': {
+        // Tap tempo: a média dos últimos toques vira o BPM; a última batida vira a referência.
+        const agora = Date.now();
+        if (batidas.length && agora - batidas[batidas.length - 1] > 2000) batidas.length = 0;
+        batidas.push(agora);
+        if (batidas.length > 6) batidas.shift();
+        if (batidas.length >= 3) {
+          s.ritmo = { bpm: Math.round((60000 * (batidas.length - 1)) / (agora - batidas[0])), t0: agora };
+        }
+        break;
+      }
     }
     return s;
   }
@@ -584,9 +638,18 @@
       case 'b': case 'B': case '.': return 'blackout';
       case 't': case 'T': return 'teste';
       case 'p': case 'P': return 'previa';
+      case 'k': case 'K': return 'tap';
+      case 'l': case 'L': return 'vinheta:explosao';
+      case 'v': case 'V': return 'vinheta:revelacao';
+      case 'c': case 'C': return 'vinheta:cortina';
     }
     return null;
   }
 
-  window.LED = { Motor, comandar, teclaParaComando };
+  // Efeitos e vinhetas extras (show.js) se registram aqui.
+  const VINHETAS = {};
+  window.LED = {
+    Motor, comandar, teclaParaComando, EFEITOS, VINHETAS,
+    util: { rgba, brilho, texto, PARTICULAS, CREME, OURO, OURO_CLARO, TITULO, SUBTITULO },
+  };
 })();
