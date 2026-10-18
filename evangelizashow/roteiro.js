@@ -124,7 +124,7 @@ window.ROTEIRO = {
           { src: 'midia/santos/madre-teresa.jpg', nome: 'Madre Teresa' },
         ],
       },
-      titulo: 'Testemunhas do *SIM*',
+      titulo: 'Evangeliza*show*',
       faixa: '{logo}   30 anos SIM   ',
     },
     {
