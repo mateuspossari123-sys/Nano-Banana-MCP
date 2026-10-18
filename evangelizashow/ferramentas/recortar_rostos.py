@@ -169,7 +169,7 @@ def main():
                 r.save(os.path.join(SAIDA, f'{base}-{i:02d}.jpg'), quality=90)
             print(f'{os.path.basename(caminho)}: {len(rostos)} rosto(s)')
     total = gerar_lista()
-    print(f'{len(total)} rostos na lista. Confira midia/rostos/revisao.jpg')
+    print(f'{len(total)} rostos na lista.' + (' Confira midia/rostos/revisao.jpg' if total else ''))
 
 
 if __name__ == '__main__':
