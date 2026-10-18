@@ -1,1 +1,5 @@
 __pycache__/
+ferramentas/modelos/
+# Rostos da comunidade são dados pessoais: ficam só no computador, fora do Git.
+midia/rostos/*
+!midia/rostos/.gitkeep

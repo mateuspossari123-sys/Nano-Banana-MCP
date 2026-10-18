@@ -130,18 +130,29 @@ e mais rostos correm pelas tiras laterais.
 Para gerar os rostos a partir das fotos (de grupo ou individuais):
 
 ```
-pip install "opencv-python-headless<5" pillow
+pip install dlib-bin pillow numpy
 python3 ferramentas/recortar_rostos.py pasta-com-as-fotos
 ```
 
-A ferramenta encontra cada rosto, endireita a cabeça, recorta todos no mesmo
-enquadramento, equaliza a luz e aplica o duotom azul (use `--natural` para manter as
-cores). Ela salva em `midia/rostos/` e atualiza a lista `midia/rostos/rostos.js`.
-Depois, confira a folha numerada `midia/rostos/revisao.jpg`: se algum recorte não
-for um rosto (às vezes a detecção confunde roupa ou textura), apague o arquivo e rode
-`python3 ferramentas/recortar_rostos.py --lista` para refazer a lista.
+Os modelos do dlib (`shape_predictor_5_face_landmarks.dat` e
+`dlib_face_recognition_resnet_model_v1.dat`, do pacote `face_recognition_models` no
+PyPI) vão em `ferramentas/modelos/`, que fica fora do Git.
 
-Rostos muito pequenos na foto (menos de ~50 px) são ignorados, porque ficariam
+A ferramenta encontra cada rosto, endireita a cabeça pelos olhos, recorta todos no
+mesmo enquadramento e aplica o duotom azul (use `--natural` para manter as cores).
+**Quem aparece em mais de uma foto entra uma vez só**, com o melhor recorte, inclusive
+entre execuções diferentes: dá para mandar fotos novas depois que ninguém se repete.
+Ela salva em `midia/rostos/` e atualiza a lista `midia/rostos/rostos.js`.
+
+Depois, confira a folha numerada `midia/rostos/revisao.jpg`. Se algum recorte não
+for uma pessoa (estampa de camiseta, quadro, imagem de santo) ou for repetido, apague
+o arquivo e rode `python3 ferramentas/recortar_rostos.py --lista`: esse rosto fica
+descartado e não volta.
+
+Os recortes, a lista e as assinaturas faciais são dados pessoais e ficam **fora do
+Git**: copie a pasta `midia/rostos/` direto para o notebook do show.
+
+Rostos muito pequenos na foto (menos de ~24 px) são ignorados, porque ficariam
 borrados no painel. Prefira fotos de grupo bem iluminadas, com as pessoas de frente.
 
 ## Vídeos e imagens
