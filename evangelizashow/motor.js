@@ -423,6 +423,7 @@
       const x0 = C.x + (C.w - cols * lado - (cols - 1) * gap) / 2;
       const y0 = C.y + topo + (livre - lins * lado - (lins - 1) * gap) / 2;
       const T = f.troca || 2.5, giro = 0.7;
+      const porVez = Math.max(1, Math.min(n, f.porVez || 1)), G = Math.ceil(n / porVez);
       const tc = (Date.now() - this.entradaEm) / 1000, feitas = Math.floor(tc / T) - 1;
       // Ordem fixa (embaralhada) em que as casas trocam: saída e prévia ficam iguais.
       if (!this.ordemRostos || this.ordemRostos.length !== n) {
@@ -457,12 +458,16 @@
         const col = c % cols, lin = Math.floor(c / cols);
         const v = Math.max(0, Math.min(1, (tc - 0.2 - (col + lin) * 0.12) / 0.6));
         if (v <= 0) continue;
-        // A casa na posição j da ordem troca nas trocas j, j+n, j+2n...; cada troca k traz o rosto n+k.
+        // As casas trocam em grupos de "porVez" (uma fileira inteira quando porVez = colunas).
+        // O grupo g troca nas trocas g, g+G, g+2G...; a troca k traz os rostos n + k·porVez em diante.
         const j = this.ordemRostos.indexOf(c);
-        const m = N > n && feitas >= j ? Math.floor((feitas - j) / n) + 1 : 0;
-        const ultima = j + (m - 1) * n;
-        const atual = m ? (n + ultima) % N : c % N, antes = m > 1 ? (n + ultima - n) % N : c % N;
-        const prog = m ? (tc - (ultima + 1) * T) / giro : 1;
+        const grupo = porVez === cols ? lin : Math.floor(j / porVez), pos = porVez === cols ? col : j % porVez;
+        const m = N > n && feitas >= grupo ? Math.floor((feitas - grupo) / G) + 1 : 0;
+        const ultima = grupo + (m - 1) * G;
+        const atual = m ? (n + ultima * porVez + pos) % N : c % N;
+        const antes = m > 1 ? (n + (ultima - G) * porVez + pos) % N : c % N;
+        // Dentro do grupo, os rostos viram um logo depois do outro, em onda.
+        const prog = m ? (tc - (ultima + 1) * T - pos * 0.1) / giro : 1;
         const el = prog < 0.5 ? lista[antes] : lista[atual];
         const esticar = prog < 1 ? Math.max(0.02, Math.abs(Math.cos(Math.PI * prog))) : 1;
         rosto(el, x0 + col * (lado + gap) + lado / 2, y0 + lin * (lado + gap) + lado / 2 + 16 * (1 - v), lado / 2, esticar, v * v * (3 - 2 * v));

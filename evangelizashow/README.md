@@ -124,8 +124,9 @@ A arte parada também está em `artes/santos-evangelizashow-1024x512.png`.
 ## Mural de rostos da comunidade
 
 A cena **Mural da comunidade** mostra 15 rostos de uma vez no painel central (grade
-5 × 3, ajustável em `grade`). A cada 2,5 s um deles "vira" e dá lugar a outra pessoa,
-e mais rostos correm pelas tiras laterais.
+5 × 3, ajustável em `grade`). A cada 4 s uma fileira inteira de 5 rostos "vira", em
+onda, e dá lugar a mais 5 pessoas (`porVez` e `troca` ajustam isso). Nas laterais
+corre "Eu digo SIM a Deus" com o logo; sem `faixa`, as laterais mostram mais rostos.
 
 Para gerar os rostos a partir das fotos (de grupo ou individuais):
 

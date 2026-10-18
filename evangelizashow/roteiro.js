@@ -11,8 +11,8 @@
  *                              Retratos e banners aparecem inteiros; para forçar, use { src, ajuste: 'preencher' | 'conter' }
  *                          { mosaico: [{ src: 'midia/santos/x.jpg', nome: 'Nome' }, ...] } → retratos lado a lado
  *                              em molduras douradas no painel central (o título vai para cima)
- *                          { rostos: true, grade: [5, 3], troca: 2.5 } → mural com os rostos da comunidade
- *                              (gerados por ferramentas/recortar_rostos.py); um rosto troca a cada 2,5 s
+ *                          { rostos: true, grade: [5, 3], porVez: 5, troca: 4 } → mural com os rostos da comunidade
+ *                              (gerados por ferramentas/recortar_rostos.py); a cada 4 s trocam 5 rostos (uma fileira)
  *                          { imagem: 'midia/arquivo.jpg', modo: 'central' }
  *               modos:  'panorama' → arquivo 2304×512, ocupa os 9 m (central + laterais)
  *                       'central'  → arquivo 1024×512, só no painel central (laterais usam "efeitoLaterais")
@@ -132,8 +132,8 @@ window.ROTEIRO = {
     {
       nome: 'Mural da comunidade',
       entrada: 'cortina',
-      fundo: { rostos: true, grade: [5, 3], troca: 2.5 },
-      titulo: 'Comunidade *SIM*',
+      fundo: { rostos: true, grade: [5, 3], porVez: 5, troca: 4 },
+      faixa: '{logo}   Eu digo SIM a Deus   ',
     },
     {
       nome: 'Diga SIM a Deus (cartaz)',
