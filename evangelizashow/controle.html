@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evangelizashow — Controle</title>
+<link rel="stylesheet" href="fontes/fontes.css">
+<style>
+  :root {
+    --fundo: #021220; --painel: #072338; --borda: #12405f; --texto: #fdf0e3;
+    --suave: #9fb3c4; --ouro: #d9b36a; --ouro-claro: #f0d49a; --perigo: #c0392b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--texto);
+    background: radial-gradient(ellipse at 60% 40%, #0b3352 0%, var(--fundo) 70%);
+    font: 15px/1.4 Montserrat, "Segoe UI", Arial, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 12px 20px; border-bottom: 1px solid var(--borda);
+  }
+  header img { height: 40px; }
+  h1 { font: 800 22px "Playfair Display", Georgia, serif; margin: 0; }
+  h1 em { color: var(--ouro); }
+  .rotulo { font-weight: 700; font-size: 11px; letter-spacing: .25em; text-transform: uppercase; color: var(--ouro-claro); }
+  .espaco { flex: 1; }
+  button {
+    font: inherit; font-weight: 700; color: var(--texto); background: var(--painel);
+    border: 1px solid var(--borda); border-radius: 10px; padding: 9px 14px; cursor: pointer;
+  }
+  button:hover { border-color: var(--ouro); }
+  button.ativo { background: var(--ouro); color: #021220; border-color: var(--ouro); }
+  button.perigo.ativo { background: var(--perigo); color: #fff; border-color: var(--perigo); }
+  button.grande { padding: 14px 22px; font-size: 17px; }
+  #status { font-size: 13px; color: var(--suave); }
+  #status.ok { color: #6fd39b; }
+  main { display: grid; grid-template-columns: 300px 1fr; gap: 20px; padding: 20px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  ol { list-style: none; margin: 8px 0 0; padding: 0; }
+  #cenas li {
+    padding: 10px 12px; margin-bottom: 6px; border-radius: 10px; cursor: pointer;
+    background: var(--painel); border: 1px solid transparent; display: flex; gap: 10px;
+  }
+  #cenas li:hover { border-color: var(--borda); }
+  #cenas li.atual { border-color: var(--ouro); background: #0d3350; }
+  #cenas li .n { color: var(--ouro); font-weight: 800; min-width: 22px; }
+  #cenas li small { display: block; color: var(--suave); }
+  canvas { width: 100%; display: block; border-radius: 12px; background: #0d0d10; }
+  .comandos { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+  .cartao { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+  .cartao h2 { font: 800 24px "Playfair Display", Georgia, serif; margin: 4px 0 8px; }
+  #letras li {
+    padding: 8px 10px; border-radius: 8px; cursor: pointer; white-space: pre-line;
+    color: var(--suave); border-left: 3px solid transparent;
+  }
+  #letras li:hover { background: #0b2c45; }
+  #letras li.atual { color: var(--texto); background: #0d3350; border-left-color: var(--ouro); font-weight: 700; }
+  #proxima { color: var(--suave); }
+  footer { padding: 0 20px 20px; color: var(--suave); font-size: 13px; }
+  kbd { background: var(--painel); border: 1px solid var(--borda); border-radius: 5px; padding: 1px 6px; font-family: inherit; color: var(--texto); }
+</style>
+</head>
+<body>
+<header>
+  <img src="midia/logo.png" alt="">
+  <div>
+    <h1>Evangeliza<em>show</em></h1>
+    <div class="rotulo">Controle do painel de LED</div>
+  </div>
+  <div class="espaco"></div>
+  <span id="status">Saída fechada</span>
+  <button id="abrir">Abrir saída do painel</button>
+  <button id="teste">Padrão de teste (T)</button>
+  <button id="previa">Prévia na saída (P)</button>
+  <button id="blackout" class="perigo">Tela preta (B)</button>
+</header>
+
+<main>
+  <section>
+    <div class="rotulo">Roteiro</div>
+    <ol id="cenas"></ol>
+  </section>
+  <section>
+    <canvas id="tela" width="1800" height="440"></canvas>
+    <div class="comandos">
+      <button class="grande" id="voltar">← Voltar</button>
+      <button class="grande" id="avancar">Avançar →</button>
+    </div>
+    <div class="cartao">
+      <div class="rotulo">No painel agora</div>
+      <h2 id="atual"></h2>
+      <ol id="letras"></ol>
+    </div>
+    <div class="cartao">
+      <div class="rotulo">Próxima cena</div>
+      <div id="proxima"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <kbd>→</kbd> <kbd>Espaço</kbd> <kbd>PageDown</kbd> avançar (letra por letra, depois próxima cena) ·
+  <kbd>←</kbd> <kbd>PageUp</kbd> voltar · <kbd>↓</kbd> <kbd>↑</kbd> pular cena ·
+  <kbd>B</kbd> tela preta · <kbd>T</kbd> teste · <kbd>P</kbd> prévia na saída.
+  Na janela da saída: duplo clique = tela cheia.
+</footer>
+
+<script src="config.js"></script>
+<script src="roteiro.js"></script>
+<script src="motor.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  const motor = new LED.Motor($('tela'), { previa: true });
+  motor.iniciar();
+  let estado = Object.assign({}, motor.estado);
+  let saida = null;
+
+  function aplicar(e, enviar) {
+    estado = e;
+    motor.setEstado(e);
+    if (enviar && saida && !saida.closed) saida.postMessage({ tipo: 'estado', estado: e }, '*');
+    desenharInterface();
+  }
+
+  function comando(cmd) {
+    aplicar(LED.comandar(estado, cmd, ROTEIRO), true);
+  }
+
+  function resumo(c) {
+    if (c.contagem) return c.contagem.ate ? `Contagem até ${c.contagem.ate}` : `Contagem de ${c.contagem.minutos} min`;
+    if (c.letras) return `${c.letras.length} slides de letra`;
+    return (c.titulo || '').replace(/\*/g, '').replace(/\n/g, ' ');
+  }
+
+  function desenharInterface() {
+    const cenas = ROTEIRO.cenas, c = cenas[estado.cena];
+    $('cenas').innerHTML = '';
+    cenas.forEach((cena, i) => {
+      const li = document.createElement('li');
+      li.className = i === estado.cena ? 'atual' : '';
+      li.innerHTML = `<span class="n">${i + 1}</span><div><b></b><small></small></div>`;
+      li.querySelector('b').textContent = cena.nome;
+      li.querySelector('small').textContent = resumo(cena);
+      li.onclick = () => comando({ cena: i });
+      $('cenas').appendChild(li);
+    });
+    document.querySelector('#cenas li.atual').scrollIntoView({ block: 'nearest' });
+
+    $('atual').textContent = c.nome;
+    $('letras').innerHTML = '';
+    const itens = [c.titulo ? `Título: ${c.titulo.replace(/\*/g, '')}` : 'Abertura da cena'].concat(c.letras || []);
+    if (c.letras || c.titulo) {
+      itens.forEach((txt, i) => {
+        const li = document.createElement('li');
+        li.textContent = txt;
+        li.className = i - 1 === estado.linha ? 'atual' : '';
+        li.onclick = () => comando({ cena: estado.cena, linha: i - 1 });
+        $('letras').appendChild(li);
+      });
+    }
+    const prox = cenas[estado.cena + 1];
+    $('proxima').textContent = prox ? `${estado.cena + 2}. ${prox.nome}` : 'Fim do roteiro';
+
+    $('blackout').classList.toggle('ativo', estado.blackout);
+    $('teste').classList.toggle('ativo', estado.teste);
+    $('previa').classList.toggle('ativo', estado.preview);
+  }
+
+  $('abrir').onclick = () => {
+    saida = window.open('saida.html', 'saida-led', 'popup=yes,width=1920,height=1080');
+  };
+  $('avancar').onclick = () => comando('avancar');
+  $('voltar').onclick = () => comando('voltar');
+  $('blackout').onclick = () => comando('blackout');
+  $('teste').onclick = () => comando('teste');
+  $('previa').onclick = () => comando('previa');
+
+  addEventListener('keydown', ev => {
+    const cmd = LED.teclaParaComando(ev);
+    if (!cmd) return;
+    ev.preventDefault();
+    comando(cmd);
+  });
+
+  addEventListener('message', ev => {
+    if (!ev.data) return;
+    if (ev.data.tipo === 'pronto' && saida) saida.postMessage({ tipo: 'estado', estado: estado }, '*');
+    if (ev.data.tipo === 'estado') aplicar(ev.data.estado, false);
+  });
+
+  setInterval(() => {
+    const aberta = saida && !saida.closed;
+    $('status').textContent = aberta ? '● Saída conectada' : 'Saída fechada';
+    $('status').className = aberta ? 'ok' : '';
+  }, 1000);
+
+  desenharInterface();
+</script>
+</body>
+</html>

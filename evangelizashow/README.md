@@ -1,0 +1,88 @@
+# Evangelizashow — painel de LED
+
+Player do que passa no painel de LED durante o Evangelizashow da Comunidade SIM
+(sábado, 21/11, 19h30). Roda no navegador (Chrome ou Edge), sem internet e sem
+programa pago.
+
+## O painel
+
+Painel P3.91 → **256 pixels por metro**.
+
+| Tela | Tamanho | Pixels | Posição na saída (x, y) |
+|---|---|---|---|
+| C — central | 4 × 2 m | 1024 × 512 | 0, 0 |
+| LE1 — lateral esquerda superior | 2 × 0,5 m | 512 × 128 | 1024, 0 |
+| LE2 — lateral esquerda inferior | 2 × 0,5 m | 512 × 128 | 1024, 128 |
+| LD1 — lateral direita superior | 2 × 0,5 m | 512 × 128 | 1024, 256 |
+| LD2 — lateral direita inferior | 2 × 0,5 m | 512 × 128 | 1024, 384 |
+
+O notebook manda **uma saída Full HD (1920 × 1080)** para o processador do painel,
+com as 5 telas montadas assim (o resto da imagem fica preto):
+
+![Mapa da saída](gabaritos/mapa-saida-1920x1080.png)
+
+**Para o técnico do painel:** configure no processador (Novastar etc.) cada tela
+recortando a região da tabela acima. Para conferir, aperte **T** no player: aparece
+o padrão de teste com o nome de cada tela. Cada tela tem que mostrar o nome certo,
+com o triângulo branco no canto superior esquerdo, e a barra branca tem que
+atravessar os 9 m da esquerda para a direita, sem pular.
+
+Se ele preferir outra arrumação, basta mudar os valores de `saida` em `config.js`.
+
+## Como usar no dia
+
+1. Copie a pasta `evangelizashow` inteira para o notebook.
+2. Ligue o painel como **segunda tela estendida** do notebook, em 1920 × 1080.
+3. Abra `controle.html` no Chrome e clique em **Abrir saída do painel**.
+4. Arraste a janela da saída para a tela do painel e dê **duplo clique** para
+   colocar em tela cheia.
+5. Opere pelo controle, que fica no notebook, ou pelo teclado ou passador de slides:
+
+| Tecla | Ação |
+|---|---|
+| → · Espaço · PageDown | avançar (passa a letra linha por linha, depois vai para a próxima cena) |
+| ← · PageUp | voltar |
+| ↓ / ↑ | pular para a próxima cena / voltar para a anterior |
+| B ou . | tela preta (com fade) |
+| T | padrão de teste |
+| P | prévia do palco na saída, para ver como fica |
+
+Também dá para clicar direto numa cena ou numa linha de letra no controle.
+
+> **Windows com escala de tela (125%, 150%)**: a saída já compensa isso para manter
+> 1 pixel = 1 LED. Mesmo assim, deixe a escala da tela do painel em 100%, se der.
+
+## Editando o roteiro
+
+O roteiro fica em `roteiro.js`, e cada cena é um bloco. O começo do arquivo explica
+todos os campos. Os principais são:
+
+- `titulo` / `subtitulo`: no título, `*palavra*` sai em itálico dourado, como o
+  "App *SIM*" da identidade;
+- `letras`: lista de slides, com `\n` para quebrar a linha;
+- `fundo`: um efeito animado (`sim`, `raios`, `particulas`, `estrelas`, `ondas`,
+  `gradiente`, `preto`) ou um vídeo/imagem da pasta `midia/`;
+- `faixa`: texto que corre nas tiras laterais;
+- `contagem`: relógio regressivo, por exemplo `{ ate: '19:30' }`.
+
+## Vídeos e imagens
+
+Coloque os arquivos em `midia/` e use na cena, por exemplo
+`fundo: { video: 'midia/abertura.mp4', modo: 'panorama' }`.
+
+| Modo | Tamanho do arquivo | Onde aparece |
+|---|---|---|
+| `panorama` | **2304 × 512** | os 9 m inteiros (o player recorta cada tela) |
+| `central` | **1024 × 512** | só no painel central; as laterais ficam com um efeito |
+| `mapeado` | **1920 × 1080** | arquivo já montado no mapa de pixels da saída |
+
+Para quem for criar arte no Canva ou em outro programa, os gabaritos estão em
+`gabaritos/`. O `palco-panorama-2304x512.png` mostra onde cada tela cai dentro
+do panorama de 9 m. As áreas pretas entre as telas são refletores e não aparecem.
+
+Use vídeo MP4 (H.264), sem áudio, de preferência em loop.
+
+## Identidade visual
+
+As cores, as fontes (Playfair Display e Montserrat, salvas em `fontes/`) e o logo
+(`midia/logo.png`) seguem o material da Comunidade SIM.

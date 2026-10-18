@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Evangelizashow — Saída do painel</title>
+<link rel="stylesheet" href="fontes/fontes.css">
+<style>
+  html, body { margin: 0; background: #000; overflow: hidden; cursor: none; }
+  canvas { position: fixed; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<canvas id="tela"></canvas>
+<script src="config.js"></script>
+<script src="roteiro.js"></script>
+<script src="motor.js"></script>
+<script>
+  const cv = document.getElementById('tela');
+  cv.width = CONFIG.saida.largura;
+  cv.height = CONFIG.saida.altura;
+  const motor = new LED.Motor(cv, {});
+  motor.iniciar();
+
+  // Na saída, 1 pixel do canvas tem que ser 1 pixel da placa de vídeo — mesmo com
+  // o Windows em escala 125%/150%. Na prévia (tecla P) a imagem se ajusta à janela.
+  function ajustar() {
+    let escala = 1 / (window.devicePixelRatio || 1);
+    if (motor.estado.preview) escala = Math.min(innerWidth / cv.width, innerHeight / cv.height);
+    cv.style.width = cv.width * escala + 'px';
+    cv.style.height = cv.height * escala + 'px';
+  }
+  addEventListener('resize', ajustar);
+  ajustar();
+
+  function aplicar(e) {
+    motor.setEstado(e);
+    ajustar();
+  }
+
+  addEventListener('keydown', ev => {
+    const cmd = LED.teclaParaComando(ev);
+    if (!cmd) return;
+    ev.preventDefault();
+    const e = LED.comandar(motor.estado, cmd, ROTEIRO);
+    aplicar(e);
+    if (window.opener) window.opener.postMessage({ tipo: 'estado', estado: e }, '*');
+  });
+
+  addEventListener('message', ev => {
+    if (ev.data && ev.data.tipo === 'estado') aplicar(ev.data.estado);
+  });
+  if (window.opener) window.opener.postMessage({ tipo: 'pronto' }, '*');
+
+  addEventListener('dblclick', () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  });
+</script>
+</body>
+</html>
