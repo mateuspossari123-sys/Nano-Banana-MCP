@@ -47,6 +47,8 @@ Se ele preferir outra arrumação, basta mudar os valores de `saida` em `config.
 | T | padrão de teste |
 | P | prévia do palco na saída, para ver como fica |
 | L / V / C | vinheta do logo: explosão / revelação / cortina |
+| R / X | raios de luz saindo do centro / relâmpagos dourados |
+| F | liga e desliga o logo correndo nas laterais, alternado com "30 anos SIM" |
 | K | tap tempo: bata 3 vezes ou mais no ritmo da música |
 
 Também dá para clicar direto numa cena ou numa linha de letra no controle.
@@ -64,7 +66,8 @@ todos os campos. Os principais são:
 - `letras`: lista de slides, com `\n` para quebrar a linha;
 - `fundo`: um efeito animado (`sim`, `raios`, `particulas`, `estrelas`, `ondas`,
   `gradiente`, `preto`) ou um vídeo/imagem da pasta `midia/`;
-- `faixa`: texto que corre nas tiras laterais;
+- `faixa`: texto que corre nas tiras laterais, onde `{logo}` vira o logo correndo junto
+  (ex.: `'{logo}   30 anos SIM   '`);
 - `contagem`: relógio regressivo, por exemplo `{ ate: '19:30' }`.
 
 ## Efeitos de show e vinhetas
@@ -86,6 +89,11 @@ botão *Tap tempo*). Tudo fica nas cores da identidade: azul, dourado e creme.
 | `explosao` (L) | clarão, onda de choque e faíscas, com o logo surgindo no centro |
 | `revelacao` (V) | um facho de luz atravessa o palco e revela o logo e "Evangeliza*show*" |
 | `cortina` (C) | barras douradas cobrem o painel, o logo aparece e as barras abrem a cena |
+| `raios` (R) | raios de luz saem do centro até as laterais (passam por trás da letra) |
+| `relampago` (X) | três relâmpagos dourados atravessam o palco (passam por trás da letra) |
+
+Para uma vinheta disparar sozinha durante a música, use na cena
+`automatico: { vinheta: 'raios', aCada: 16 }`, que dispara a cada 16 batidas.
 
 As vinhetas podem ser disparadas a qualquer momento, ou usadas como **passagem**
 entre cenas com `entrada: 'cortina'` (ou outra) na cena. Nesse caso, a troca de
@@ -93,6 +101,17 @@ cena acontece por baixo da vinheta.
 
 Nenhum efeito pisca a tela inteira em ritmo rápido. Mesmo assim, evite subir o
 BPM muito acima de 150 no `pulso` e nos `feixes`.
+
+## Imagens nas músicas de oração
+
+Use uma galeria: `fundo: { imagens: ['midia/a.jpg', 'midia/b.jpg'], troca: 12 }`.
+As imagens trocam a cada 12 segundos com fade, um zoom bem lento e a própria imagem
+desfocada preenchendo o resto do palco. Retratos e banners aparecem inteiros, sem
+corte. Nessas cenas, o título e a letra vão para a parte de baixo do painel, para não
+cobrir rostos.
+
+Para cartazes que já têm texto, como o "Diga SIM a Deus", use uma cena só com a imagem,
+sem título nem letra.
 
 ## Vídeos e imagens
 

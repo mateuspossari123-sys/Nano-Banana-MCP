@@ -280,6 +280,10 @@
 
     midiaDe(fundo) {
       if (!fundo || typeof fundo !== 'object') return null;
+      if (fundo.imagens) {
+        fundo.imagens.forEach(x => this.imagem(x.src || x));
+        return null;
+      }
       const src = fundo.video || fundo.imagem;
       if (!this.midia[src]) {
         let el;
@@ -297,6 +301,68 @@
         this.midia[src] = el;
       }
       return this.midia[src];
+    }
+
+    imagem(src) {
+      if (!this.midia[src]) {
+        this.midia[src] = new Image();
+        this.midia[src].src = src;
+      }
+      return this.midia[src];
+    }
+
+    // Versão desfocada e escurecida da imagem no palco inteiro (feita uma vez só por imagem).
+    desfocada(el) {
+      this.desfoques = this.desfoques || new Map();
+      if (!this.desfoques.has(el)) {
+        const c = document.createElement('canvas');
+        c.width = this.W;
+        c.height = this.H;
+        const x = c.getContext('2d');
+        x.filter = 'blur(28px) brightness(0.4) saturate(1.2)';
+        const [iw, ih] = dimensoes(el);
+        desenharCover(x, el, iw, ih, { x: -60, y: -60, w: this.W + 120, h: this.H + 120 });
+        this.desfoques.set(el, c);
+      }
+      return this.desfoques.get(el);
+    }
+
+    // Galeria (músicas de oração): as imagens trocam devagar, com zoom suave, e a mesma
+    // imagem desfocada se estende pelas laterais.
+    desenharGaleria(p, f, cena, cores, t, b) {
+      // Cada item é 'midia/x.jpg' ou { src: 'midia/x.jpg', ajuste: 'preencher' | 'conter' }.
+      const prontas = f.imagens.map(x => ({ el: this.imagem(x.src || x), ajuste: x.ajuste || f.ajuste })).filter(x => dimensoes(x.el));
+      const central = (f.modo || 'central') === 'central';
+      const efeito = !prontas.length || cena.efeitoLaterais;
+      if (efeito) (EFEITOS[cena.efeitoLaterais] || EFEITOS.sim)(p, this.W, this.H, t, cores, b);
+      if (!prontas.length) return;
+      const T = f.troca || 10, fade = Math.min(2, T / 3);
+      const tc = (Date.now() - this.entradaEm) / 1000;
+      const k = Math.floor(tc / T), dentro = tc - k * T;
+      const mostrar = (n, alfa, idade) => {
+        const { el, ajuste } = prontas[n % prontas.length], [iw, ih] = dimensoes(el);
+        const u = idade / (T + fade), dir = n % 2 ? 1 : -1;
+        const r = central ? this.central : { x: 0, y: 0, w: this.W, h: this.H };
+        // Imagem bem mais alta ou mais larga que a tela (retrato, banner) aparece inteira, com o
+        // desfocado em volta; as de proporção parecida preenchem a tela.
+        const prop = iw / ih / (r.w / r.h);
+        const conter = ajuste ? ajuste === 'conter' : prop < 0.8 || prop > 1.3;
+        const s = (conter ? Math.min : Math.max)(r.w / iw, r.h / ih) * (1.04 + 0.08 * u), w = iw * s, h = ih * s;
+        p.save();
+        p.globalAlpha = alfa;
+        if (central && !efeito) p.drawImage(this.desfocada(el), 0, 0);
+        p.beginPath();
+        p.rect(r.x, r.y, r.w, r.h);
+        p.clip();
+        if (conter) {
+          p.shadowColor = 'rgba(0,0,0,0.8)';
+          p.shadowBlur = 40;
+        }
+        p.drawImage(el, r.x + (r.w - w) / 2 + dir * r.w * 0.03 * (u - 0.5), r.y + (r.h - h) / 2, w, h);
+        p.restore();
+      };
+      mostrar(k, 1, dentro + fade);
+      if (prontas.length > 1 && dentro > T - fade) mostrar(k + 1, (dentro - (T - fade)) / fade, dentro - (T - fade));
     }
 
     entrar(i) {
@@ -361,7 +427,7 @@
           p.drawImage(this.foto, 0, 0);
           p.globalAlpha = 1;
         }
-        this.desenharVinheta(p);
+        this.desenharVinheta(p, false);
       }
       p.restore();
 
@@ -372,9 +438,10 @@
       else this.mapear();
     }
 
-    desenharVinheta(p) {
+    // Vinhetas "porBaixo" (raios, relâmpagos) ficam entre o fundo e o texto, para não cobrir a letra.
+    desenharVinheta(p, porBaixo) {
       const v = this.vinheta, def = v && VINHETAS[v.tipo];
-      if (!def) return;
+      if (!def || !!def.porBaixo !== porBaixo) return;
       const prog = (Date.now() - v.t0) / (def.dur * 1000);
       if (prog < 0 || prog >= 1) return;
       p.save();
@@ -393,8 +460,20 @@
     desenharCena(p, cena, t, agora) {
       const cores = cena.cores || this.rot.cores || CORES_PADRAO;
       const f = cena.fundo || 'sim', b = this.batida();
+
+      // Vinheta automática a cada N batidas (ex.: raios no refrão).
+      const auto = cena.automatico;
+      if (auto && VINHETAS[auto.vinheta]) {
+        const bloco = Math.floor(b.total / (auto.aCada || 16));
+        if (this.cenaAuto === this.estado.cena && bloco !== this.blocoAuto) this.vinheta = { tipo: auto.vinheta, t0: Date.now() };
+        this.blocoAuto = bloco;
+        this.cenaAuto = this.estado.cena;
+      }
+
       if (typeof f === 'string') {
         (EFEITOS[f] || EFEITOS.sim)(p, this.W, this.H, t, cores, b);
+      } else if (f.imagens) {
+        this.desenharGaleria(p, f, cena, cores, t, b);
       } else {
         const modo = f.modo || 'panorama';
         if (modo === 'central') (EFEITOS[cena.efeitoLaterais] || EFEITOS.sim)(p, this.W, this.H, t, cores, b);
@@ -408,9 +487,14 @@
         }
       }
 
-      if (cena.faixa) this.desenharFaixa(p, cena.faixa.toUpperCase(), t);
+      this.desenharVinheta(p, true);
 
-      const C = this.central, margem = 36;
+      const faixa = cena.faixa || (this.estado.faixa && (this.rot.faixaPadrao || '{logo}   Evangelizashow   ✦   '));
+      if (faixa) this.desenharFaixa(p, faixa, t);
+
+      // Sobre fotos, o texto vai para a parte de baixo para não cobrir rostos e cartazes.
+      const C = this.central, margem = 36, galeria = !!f.imagens;
+      const A = galeria ? { x: C.x, y: C.y + C.h * 0.56, w: C.w, h: C.h * 0.44 } : C;
       const blocos = [];
       if (cena.contagem) {
         const k = cena.contagem;
@@ -431,11 +515,13 @@
         const linhas = cena.letras[this.estado.linha].split('\n');
         blocos.push({ linhas: linhas, o: LETRA, h: C.h - 2 * margem });
         // Sombra suave atrás da letra: sobre efeitos fortes ela continua legível.
-        const g = p.createRadialGradient(C.x + C.w / 2, C.y + C.h / 2, 0, C.x + C.w / 2, C.y + C.h / 2, C.w * 0.55);
-        g.addColorStop(0, 'rgba(2,18,32,0.7)');
-        g.addColorStop(1, 'rgba(2,18,32,0)');
-        p.fillStyle = g;
-        p.fillRect(C.x, C.y, C.w, C.h);
+        if (!galeria) {
+          const g = p.createRadialGradient(C.x + C.w / 2, C.y + C.h / 2, 0, C.x + C.w / 2, C.y + C.h / 2, C.w * 0.55);
+          g.addColorStop(0, 'rgba(2,18,32,0.7)');
+          g.addColorStop(1, 'rgba(2,18,32,0)');
+          p.fillStyle = g;
+          p.fillRect(C.x, C.y, C.w, C.h);
+        }
       } else {
         const logo = cena.logo && this.logo && this.logo.complete && this.logo.naturalWidth;
         const acompanhado = logo || cena.subtitulo;
@@ -453,8 +539,16 @@
       // Empilha os blocos no centro do painel central, encolhendo tudo se não couber.
       const espaco = 22;
       const total = blocos.reduce((s, b) => s + b.h, 0) + espaco * Math.max(0, blocos.length - 1);
-      const escala = Math.min(1, (C.h - 2 * margem) / total);
-      let y = C.y + (C.h - total * escala) / 2;
+      const escala = Math.min(1, (A.h - (galeria ? 24 : 2 * margem)) / total);
+      let y = A.y + (A.h - total * escala) / 2;
+      if (galeria && blocos.length) {
+        const g = p.createLinearGradient(0, C.y + C.h * 0.35, 0, C.y + C.h);
+        g.addColorStop(0, 'rgba(2,18,32,0)');
+        g.addColorStop(0.45, 'rgba(2,18,32,0.75)');
+        g.addColorStop(1, 'rgba(2,18,32,0.9)');
+        p.fillStyle = g;
+        p.fillRect(C.x, C.y + C.h * 0.35, C.w, C.h * 0.65);
+      }
       p.save();
       p.globalAlpha = Math.min(1, (agora - this.linhaEm) / 300);
       blocos.forEach(b => {
@@ -471,12 +565,18 @@
       p.restore();
     }
 
+    // A frase pode ter {logo}: o logo corre junto com o texto pelas tiras.
     desenharFaixa(p, frase, t) {
-      this.cfg.telas.filter(tl => tl.id !== 'C').forEach(({ palco: r }, i) => {
+      const pedacos = frase.split('{logo}').map(x => x.toUpperCase());
+      const temLogo = this.logo && this.logo.complete && this.logo.naturalWidth;
+      this.cfg.telas.filter(tl => tl.id !== 'C').forEach(({ palco: r }) => {
         p.save();
         p.beginPath();
         p.rect(r.x, r.y, r.w, r.h);
         p.clip();
+        // Fundo levemente escurecido: a faixa aparece mesmo sobre efeitos fortes.
+        p.fillStyle = 'rgba(2,18,32,0.35)';
+        p.fillRect(r.x, r.y, r.w, r.h);
         const s = r.h * 0.36;
         p.font = `700 ${s}px ${SANS}`;
         p.letterSpacing = `${s * 0.25}px`;
@@ -484,11 +584,23 @@
         p.fillStyle = OURO_CLARO;
         p.shadowColor = rgba(OURO, 0.8);
         p.shadowBlur = s * 0.5;
-        const largura = p.measureText(frase).width;
-        // Laterais esquerdas correm para a esquerda e direitas para a direita: o texto "sai" do centro.
+        const lh = r.h * 0.74, lw = temLogo ? (lh * this.logo.naturalWidth) / this.logo.naturalHeight : 0;
+        const larguras = pedacos.map(x => p.measureText(x).width);
+        const ciclo = larguras.reduce((a, b) => a + b, 0) + lw * (pedacos.length - 1);
+        // Laterais esquerdas correm para a esquerda e direitas para a direita: tudo "sai" do centro.
         const dir = r.x < this.central.x ? -1 : 1;
-        let x = (((dir * t * 90) % largura) + largura) % largura - largura;
-        for (; x < r.w; x += largura) p.fillText(frase, r.x + x, r.y + r.h / 2);
+        let x = (((dir * t * 90) % ciclo) + ciclo) % ciclo - ciclo;
+        for (; ciclo > 0 && x < r.w; x += ciclo) {
+          let xx = r.x + x;
+          pedacos.forEach((txt, i) => {
+            if (i > 0) {
+              if (temLogo) p.drawImage(this.logo, xx, r.y + (r.h - lh) / 2, lw, lh);
+              xx += lw;
+            }
+            p.fillText(txt, xx, r.y + r.h / 2);
+            xx += larguras[i];
+          });
+        }
         p.restore();
       });
     }
@@ -613,6 +725,7 @@
       case 'blackout': s.blackout = !s.blackout; break;
       case 'teste': s.teste = !s.teste; break;
       case 'previa': s.preview = !s.preview; break;
+      case 'faixa': s.faixa = !s.faixa; break;
       case 'tap': {
         // Tap tempo: a média dos últimos toques vira o BPM; a última batida vira a referência.
         const agora = Date.now();
@@ -638,6 +751,9 @@
       case 'b': case 'B': case '.': return 'blackout';
       case 't': case 'T': return 'teste';
       case 'p': case 'P': return 'previa';
+      case 'f': case 'F': return 'faixa';
+      case 'r': case 'R': return 'vinheta:raios';
+      case 'x': case 'X': return 'vinheta:relampago';
       case 'k': case 'K': return 'tap';
       case 'l': case 'L': return 'vinheta:explosao';
       case 'v': case 'V': return 'vinheta:revelacao';
@@ -650,6 +766,6 @@
   const VINHETAS = {};
   window.LED = {
     Motor, comandar, teclaParaComando, EFEITOS, VINHETAS,
-    util: { rgba, brilho, texto, PARTICULAS, CREME, OURO, OURO_CLARO, TITULO, SUBTITULO },
+    util: { rgba, brilho, texto, semente, PARTICULAS, CREME, OURO, OURO_CLARO, TITULO, SUBTITULO },
   };
 })();

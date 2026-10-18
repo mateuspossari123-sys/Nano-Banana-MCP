@@ -6,6 +6,9 @@
  *   fundo       efeito animado: 'sim' (padrão) | 'gradiente' | 'raios' | 'particulas' | 'estrelas' | 'ondas' | 'preto'
  *               efeitos de show, que pulsam na batida: 'varredura' | 'pulso' | 'feixes' | 'tunel' | 'brilhos'
  *               ou mídia:  { video: 'midia/arquivo.mp4', modo: 'panorama' }
+ *                          { imagens: ['midia/a.jpg', 'midia/b.jpg'], troca: 10 }  → galeria que troca a cada 10 s,
+ *                              com zoom lento e a imagem desfocada nas laterais (bom para músicas de oração).
+ *                              Retratos e banners aparecem inteiros; para forçar, use { src, ajuste: 'preencher' | 'conter' }
  *                          { imagem: 'midia/arquivo.jpg', modo: 'central' }
  *               modos:  'panorama' → arquivo 2304×512, ocupa os 9 m (central + laterais)
  *                       'central'  → arquivo 1024×512, só no painel central (laterais usam "efeitoLaterais")
@@ -14,10 +17,11 @@
  *   cores       [fundo, cor de luz 1, cor de luz 2, ...]
  *   titulo, subtitulo   texto no painel central; no título, *palavra* sai em itálico dourado
  *   letras      lista de slides de letra; use \n para quebrar linha (máx. 2 linhas por slide)
- *   faixa       texto que corre nas tiras laterais
+ *   faixa       texto que corre nas tiras laterais; {logo} vira o logo correndo junto
  *   contagem    { minutos: 5 }  ou  { ate: '19:30' }  — mostra relógio regressivo no central
  *   logo        true → mostra o logo (ROTEIRO.logo) no painel central
- *   entrada     vinheta que faz a passagem para esta cena: 'explosao' | 'revelacao' | 'cortina'
+ *   entrada     vinheta que faz a passagem para esta cena: 'explosao' | 'revelacao' | 'cortina' | 'raios'
+ *   automatico  vinheta disparada sozinha a cada N batidas: { vinheta: 'raios', aCada: 16 }
  *
  * Detalhes dos efeitos e vinhetas: show.js.
  */
@@ -25,6 +29,7 @@ window.ROTEIRO = {
   evento: 'Evangelizashow — Comunidade SIM — sábado, 21/11, 19h30',
   logo: 'midia/logo.png',
   assinatura: 'Evangeliza*show*',   // texto da vinheta "revelação"
+  faixaPadrao: '{logo}   30 anos SIM   ',   // faixa das laterais ligada pela tecla F
   bpm: 120,                         // batida inicial; no show, ajuste com tap tempo (tecla K)
 
   // Paleta da identidade: azul profundo, azul do brilho, dourado.
@@ -36,12 +41,12 @@ window.ROTEIRO = {
       logo: true,
       titulo: 'Evangeliza*show*',
       subtitulo: 'Comunidade SIM · Alcançados pela misericórdia',
-      faixa: 'Evangelizashow  ✦  Comunidade SIM  ✦  ',
+      faixa: '{logo}   30 anos SIM   ',
     },
     {
       nome: 'Contagem regressiva',
       contagem: { ate: '19:30', texto: 'O show começa em' },
-      faixa: 'Evangelizashow  ✦  ',
+      faixa: '{logo}   30 anos SIM   ',
     },
     {
       nome: 'Abertura',
@@ -68,6 +73,7 @@ window.ROTEIRO = {
       nome: 'Música 2',
       entrada: 'cortina',
       fundo: 'feixes',
+      automatico: { vinheta: 'raios', aCada: 16 },
       cores: ['#021220', '#0e4166', '#d9b36a'],
       titulo: 'Nome da música 2',
       subtitulo: 'Artista',
@@ -80,6 +86,7 @@ window.ROTEIRO = {
       nome: 'Música 3',
       entrada: 'explosao',
       fundo: 'tunel',
+      automatico: { vinheta: 'relampago', aCada: 32 },
       cores: ['#021220', '#0e4166', '#d9b36a'],
       titulo: 'Nome da música 3',
       subtitulo: 'Artista',
@@ -91,7 +98,27 @@ window.ROTEIRO = {
       nome: 'Louvor (sem letra)',
       fundo: 'brilhos',
       cores: ['#021220', '#0e4166', '#d9b36a'],
-      faixa: 'Evangelizashow  ✦  ',
+      faixa: '{logo}   30 anos SIM   ',
+    },
+    {
+      nome: 'Música oracional (imagens)',
+      fundo: { imagens: ['midia/adoracao.jpg', 'midia/joao-paulo-ii.jpg'], troca: 12 },
+      titulo: 'Nome da música oracional',
+      subtitulo: 'Artista',
+      letras: [
+        'Linha um\nlinha dois',
+        'Linha três\nlinha quatro',
+      ],
+    },
+    {
+      nome: 'Diga SIM a Deus (cartaz)',
+      entrada: 'raios',
+      fundo: { imagens: ['midia/diga-sim-a-deus.jpg'] },
+    },
+    {
+      nome: 'Santificai-vos (banner)',
+      entrada: 'cortina',
+      fundo: { imagens: ['midia/santificai-vos.jpg'] },
     },
     {
       nome: 'Pregação',
@@ -112,7 +139,7 @@ window.ROTEIRO = {
       logo: true,
       titulo: 'Obrigado!',
       subtitulo: 'Comunidade SIM · Alcançados pela misericórdia',
-      faixa: 'Evangelizashow  ✦  Comunidade SIM  ✦  ',
+      faixa: '{logo}   30 anos SIM   ',
     },
     {
       nome: 'Tela preta',

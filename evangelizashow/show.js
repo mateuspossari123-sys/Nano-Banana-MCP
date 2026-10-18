@@ -12,12 +12,16 @@
  *   explosao   clarão, onda de choque e faíscas com o logo no centro
  *   revelacao  um facho de luz atravessa o palco e revela o logo e o nome do evento
  *   cortina    barras douradas cobrem o painel, o logo aparece, e as barras abrem a próxima cena
+ *   raios      explosão de raios de luz saindo do centro para as laterais (tecla R)
+ *   relampago  três relâmpagos dourados atravessando o palco (tecla X)
+ *
+ * Para disparar sozinha a cada N batidas: automatico: { vinheta: 'raios', aCada: 16 } na cena.
  */
 (function () {
   'use strict';
 
   const { EFEITOS, VINHETAS } = window.LED;
-  const { rgba, brilho, texto, PARTICULAS, CREME, OURO, OURO_CLARO, TITULO } = window.LED.util;
+  const { rgba, brilho, texto, semente, PARTICULAS, CREME, OURO, OURO_CLARO, TITULO } = window.LED.util;
   const NOITE = '#021220';
   const C = window.CONFIG.telas.find(t => t.id === 'C').palco;
   const TIRAS = window.CONFIG.telas.filter(t => t.id !== 'C').map(t => t.palco);
@@ -282,6 +286,82 @@
         halo(ctx, cx, cy, C.w * 0.5, '#0e4166', meio);
         ctx.globalCompositeOperation = 'source-over';
         logo(ctx, m, cx, cy, C.h * 0.6 * (0.9 + 0.1 * meio), meio);
+      }
+    },
+  };
+
+  VINHETAS.raios = {
+    porBaixo: true,
+    dur: 3,
+    cobre: 0.2,
+    desenhar(ctx, W, H, p) {
+      const forca = p < 0.12 ? suave(p / 0.12) : 1 - suave(lim((p - 0.5) / 0.5));
+      const alcance = desacelera(lim(p / 0.35)) * W * 0.75;
+      ctx.globalCompositeOperation = 'lighter';
+      const n = 32;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + p * 0.5;
+        const w = 0.03 + 0.02 * Math.sin(i * 2.7), L = alcance * (0.7 + 0.3 * Math.sin(i * 1.9));
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(1, L));
+        g.addColorStop(0, rgba(CREME, 0.6 * forca));
+        g.addColorStop(0.4, rgba(OURO, 0.35 * forca));
+        g.addColorStop(1, rgba(OURO, 0));
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(a - w) * L, cy + Math.sin(a - w) * L);
+        ctx.lineTo(cx + Math.cos(a + w) * L, cy + Math.sin(a + w) * L);
+        ctx.closePath();
+        ctx.fill();
+      }
+      halo(ctx, cx, cy, C.h * 0.8, CREME, 0.5 * forca);
+    },
+  };
+
+  // Linha quebrada por deslocamento do ponto médio, com brilho dourado em volta.
+  function descarga(ctx, rnd, x0, y0, x1, y1, grossura, alfa) {
+    let pts = [[x0, y0], [x1, y1]], desvio = Math.hypot(x1 - x0, y1 - y0) * 0.25;
+    for (let k = 0; k < 6; k++) {
+      const novos = [pts[0]];
+      for (let i = 1; i < pts.length; i++) {
+        const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
+        const nx = ay - by, ny = bx - ax, len = Math.hypot(nx, ny) || 1, d = (rnd() - 0.5) * desvio;
+        novos.push([(ax + bx) / 2 + (nx / len) * d, (ay + by) / 2 + (ny / len) * d], pts[i]);
+      }
+      pts = novos;
+      desvio *= 0.55;
+    }
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    [[OURO, 0.3, 7], [OURO_CLARO, 0.8, 2.5], [CREME, 1, 1]].forEach(([cor, a, l]) => {
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.strokeStyle = rgba(cor, a * alfa);
+      ctx.lineWidth = grossura * l;
+      ctx.stroke();
+    });
+    return pts;
+  }
+
+  VINHETAS.relampago = {
+    porBaixo: true,
+    dur: 1.6,
+    cobre: 0,
+    desenhar(ctx, W, H, p, m) {
+      // A semente vem da hora do disparo: saída e prévia desenham os mesmos relâmpagos.
+      const base = Math.floor(m.vinheta.t0 % 100000) + 1;
+      ctx.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < 3; k++) {
+        const rnd = semente(base * 31 + k * 7919);
+        const x0 = rnd() * W, x1 = x0 + (rnd() - 0.5) * W * 0.5, galho = rnd();
+        const vida = (p - k * 0.22) / 0.3;
+        if (vida < 0 || vida > 1) continue;
+        // Acende, cai, reacende uma vez e some.
+        const alfa = (1 - vida) * (vida < 0.15 || (vida > 0.3 && vida < 0.4) ? 1 : 0.5);
+        halo(ctx, (x0 + x1) / 2, H / 2, H * 0.9, OURO, 0.25 * alfa);
+        const pts = descarga(ctx, rnd, x0, -10, x1, H + 10, 2.5, alfa);
+        const [gx, gy] = pts[Math.floor(pts.length * (0.3 + galho * 0.3))];
+        descarga(ctx, rnd, gx, gy, gx + (rnd() - 0.5) * W * 0.25, H + 10, 1.4, alfa * 0.8);
       }
     },
   };
