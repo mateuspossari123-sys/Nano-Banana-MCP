@@ -280,6 +280,10 @@
 
     midiaDe(fundo) {
       if (!fundo || typeof fundo !== 'object') return null;
+      if (fundo.rostos) {
+        (window.ROSTOS || []).forEach(src => this.imagem(src));
+        return null;
+      }
       if (fundo.imagens || fundo.mosaico) {
         (fundo.imagens || fundo.mosaico).forEach(x => this.imagem(x.src || x));
         return null;
@@ -405,6 +409,81 @@
       });
     }
 
+    // Mural de rostos da comunidade (lista em midia/rostos/rostos.js, gerada pela
+    // ferramenta de recorte). Grade no central, um rosto "vira" por vez para dar lugar
+    // a outro; nas tiras, mais rostos correm para os lados.
+    desenharRostos(p, f, cena, cores, t, b, faixaLigada) {
+      (EFEITOS[cena.efeitoLaterais] || EFEITOS.sim)(p, this.W, this.H, t, cores, b);
+      const lista = (window.ROSTOS || []).map(src => this.imagem(src)).filter(el => dimensoes(el));
+      const N = lista.length;
+      if (!N) return;
+      const C = this.central, [cols, lins] = f.grade || [5, 3], n = cols * lins, gap = 12;
+      const topo = cena.titulo ? 104 : 24, livre = C.h - topo - 24;
+      const lado = Math.min((C.w - 48 - gap * (cols - 1)) / cols, (livre - gap * (lins - 1)) / lins);
+      const x0 = C.x + (C.w - cols * lado - (cols - 1) * gap) / 2;
+      const y0 = C.y + topo + (livre - lins * lado - (lins - 1) * gap) / 2;
+      const T = f.troca || 2.5, giro = 0.7;
+      const tc = (Date.now() - this.entradaEm) / 1000, feitas = Math.floor(tc / T) - 1;
+      // Ordem fixa (embaralhada) em que as casas trocam: saída e prévia ficam iguais.
+      if (!this.ordemRostos || this.ordemRostos.length !== n) {
+        const r = semente(n * 97);
+        this.ordemRostos = Array.from({ length: n }, (_, i) => i).sort(() => r() - 0.5);
+      }
+      const rosto = (el, cx, cy, raio, esticar, alfa) => {
+        const d = dimensoes(el);
+        p.save();
+        p.globalAlpha = alfa;
+        p.translate(cx, cy);
+        p.scale(esticar, 1);
+        p.shadowColor = rgba(OURO, 0.35);
+        p.shadowBlur = raio * 0.25;
+        p.beginPath();
+        p.arc(0, 0, raio, 0, Math.PI * 2);
+        p.fillStyle = '#021220';
+        p.fill();
+        p.shadowColor = 'transparent';
+        p.save();
+        p.clip();
+        desenharCover(p, el, d[0], d[1], { x: -raio, y: -raio, w: raio * 2, h: raio * 2 });
+        p.restore();
+        p.beginPath();
+        p.arc(0, 0, raio, 0, Math.PI * 2);
+        p.strokeStyle = rgba(OURO_CLARO, 0.9);
+        p.lineWidth = Math.max(1.5, raio * 0.04);
+        p.stroke();
+        p.restore();
+      };
+      for (let c = 0; c < n; c++) {
+        const col = c % cols, lin = Math.floor(c / cols);
+        const v = Math.max(0, Math.min(1, (tc - 0.2 - (col + lin) * 0.12) / 0.6));
+        if (v <= 0) continue;
+        // A casa na posição j da ordem troca nas trocas j, j+n, j+2n...; cada troca k traz o rosto n+k.
+        const j = this.ordemRostos.indexOf(c);
+        const m = N > n && feitas >= j ? Math.floor((feitas - j) / n) + 1 : 0;
+        const ultima = j + (m - 1) * n;
+        const atual = m ? (n + ultima) % N : c % N, antes = m > 1 ? (n + ultima - n) % N : c % N;
+        const prog = m ? (tc - (ultima + 1) * T) / giro : 1;
+        const el = prog < 0.5 ? lista[antes] : lista[atual];
+        const esticar = prog < 1 ? Math.max(0.02, Math.abs(Math.cos(Math.PI * prog))) : 1;
+        rosto(el, x0 + col * (lado + gap) + lado / 2, y0 + lin * (lado + gap) + lado / 2 + 16 * (1 - v), lado / 2, esticar, v * v * (3 - 2 * v));
+      }
+      if (faixaLigada) return;
+      this.cfg.telas.filter(tl => tl.id !== 'C').forEach(({ palco: r }, k) => {
+        const raio = (r.h - 16) / 2, passo = raio * 2 + 16, dir = r.x < C.x ? -1 : 1;
+        const desloc = dir * t * 50;
+        p.save();
+        p.beginPath();
+        p.rect(r.x, r.y, r.w, r.h);
+        p.clip();
+        const i0 = Math.floor(-desloc / passo) - 1;
+        for (let i = i0; i <= i0 + Math.ceil(r.w / passo) + 2; i++) {
+          const el = lista[(((i + k * 7 + n) % N) + N) % N];
+          rosto(el, r.x + i * passo + desloc + passo / 2, r.y + r.h / 2, raio, 1, 1);
+        }
+        p.restore();
+      });
+    }
+
     entrar(i) {
       this.entradaEm = Date.now();
       const atual = this.midiaDe(this.rot.cenas[i].fundo);
@@ -516,6 +595,8 @@
         this.desenharGaleria(p, f, cena, cores, t, b);
       } else if (f.mosaico) {
         this.desenharMosaico(p, f, cena, cores, t, b);
+      } else if (f.rostos) {
+        this.desenharRostos(p, f, cena, cores, t, b, !!(cena.faixa || this.estado.faixa));
       } else {
         const modo = f.modo || 'panorama';
         if (modo === 'central') (EFEITOS[cena.efeitoLaterais] || EFEITOS.sim)(p, this.W, this.H, t, cores, b);
@@ -535,7 +616,7 @@
       if (faixa) this.desenharFaixa(p, faixa, t);
 
       // Sobre fotos, o texto vai para a parte de baixo para não cobrir rostos e cartazes.
-      const C = this.central, margem = 36, galeria = !!f.imagens, mosaico = !!f.mosaico;
+      const C = this.central, margem = 36, galeria = !!f.imagens, mosaico = !!(f.mosaico || f.rostos);
       const A = galeria ? { x: C.x, y: C.y + C.h * 0.56, w: C.w, h: C.h * 0.44 }
         : mosaico ? { x: C.x, y: C.y + 18, w: C.w, h: 88 } : C;
       const blocos = [];

@@ -121,6 +121,29 @@ ficam em `midia/santos/`, já recortadas e tratadas no duotom azul da identidade
 Para trocar ou acrescentar um santo, mande a foto que eu trato do mesmo jeito.
 A arte parada também está em `artes/santos-evangelizashow-1024x512.png`.
 
+## Mural de rostos da comunidade
+
+A cena **Mural da comunidade** mostra 15 rostos de uma vez no painel central (grade
+5 × 3, ajustável em `grade`). A cada 2,5 s um deles "vira" e dá lugar a outra pessoa,
+e mais rostos correm pelas tiras laterais.
+
+Para gerar os rostos a partir das fotos (de grupo ou individuais):
+
+```
+pip install "opencv-python-headless<5" pillow
+python3 ferramentas/recortar_rostos.py pasta-com-as-fotos
+```
+
+A ferramenta encontra cada rosto, endireita a cabeça, recorta todos no mesmo
+enquadramento, equaliza a luz e aplica o duotom azul (use `--natural` para manter as
+cores). Ela salva em `midia/rostos/` e atualiza a lista `midia/rostos/rostos.js`.
+Depois, confira a folha numerada `midia/rostos/revisao.jpg`: se algum recorte não
+for um rosto (às vezes a detecção confunde roupa ou textura), apague o arquivo e rode
+`python3 ferramentas/recortar_rostos.py --lista` para refazer a lista.
+
+Rostos muito pequenos na foto (menos de ~50 px) são ignorados, porque ficariam
+borrados no painel. Prefira fotos de grupo bem iluminadas, com as pessoas de frente.
+
 ## Vídeos e imagens
 
 Coloque os arquivos em `midia/` e use na cena, por exemplo
