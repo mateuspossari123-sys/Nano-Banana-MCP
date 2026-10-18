@@ -113,6 +113,14 @@ cobrir rostos.
 Para cartazes que já têm texto, como o "Diga SIM a Deus", use uma cena só com a imagem,
 sem título nem letra.
 
+### Arte dos santos ("Testemunhas do *SIM*")
+
+A cena **Santos (arte)** usa o fundo `mosaico`: retratos lado a lado em molduras
+douradas, entrando um a um do centro para as pontas, com o nome embaixo. As fotos
+ficam em `midia/santos/`, já recortadas e tratadas no duotom azul da identidade.
+Para trocar ou acrescentar um santo, mande a foto que eu trato do mesmo jeito.
+A arte parada também está em `artes/testemunhas-do-sim-1024x512.png`.
+
 ## Vídeos e imagens
 
 Coloque os arquivos em `midia/` e use na cena, por exemplo

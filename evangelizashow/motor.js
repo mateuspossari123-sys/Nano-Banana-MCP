@@ -280,8 +280,8 @@
 
     midiaDe(fundo) {
       if (!fundo || typeof fundo !== 'object') return null;
-      if (fundo.imagens) {
-        fundo.imagens.forEach(x => this.imagem(x.src || x));
+      if (fundo.imagens || fundo.mosaico) {
+        (fundo.imagens || fundo.mosaico).forEach(x => this.imagem(x.src || x));
         return null;
       }
       const src = fundo.video || fundo.imagem;
@@ -363,6 +363,46 @@
       };
       mostrar(k, 1, dentro + fade);
       if (prontas.length > 1 && dentro > T - fade) mostrar(k + 1, (dentro - (T - fade)) / fade, dentro - (T - fade));
+    }
+
+    // Mosaico: retratos lado a lado no painel central, em molduras douradas, entrando
+    // um a um do centro para as pontas, com o nome embaixo de cada um.
+    desenharMosaico(p, f, cena, cores, t, b) {
+      (EFEITOS[cena.efeitoLaterais] || EFEITOS.sim)(p, this.W, this.H, t, cores, b);
+      const C = this.central, n = f.mosaico.length;
+      const gap = 14, w = Math.min(180, (C.w - 68 - gap * (n - 1)) / n), h = w / 0.6;
+      const x0 = C.x + (C.w - (n * w + (n - 1) * gap)) / 2, y0 = C.y + 112;
+      const tc = (Date.now() - this.entradaEm) / 1000;
+      f.mosaico.forEach((item, i) => {
+        const el = this.imagem(item.src), d = dimensoes(el);
+        const v = Math.max(0, Math.min(1, (tc - 0.4 - Math.abs(i - (n - 1) / 2) * 0.5) / 0.9));
+        const a = v * v * (3 - 2 * v);
+        if (!d || a <= 0) return;
+        const x = x0 + i * (w + gap), y = y0 + 26 * (1 - a);
+        p.save();
+        p.globalAlpha = a;
+        p.shadowColor = rgba(OURO, 0.25 + 0.15 * Math.sin(t * 0.8 + i));
+        p.shadowBlur = 30;
+        p.fillStyle = '#021220';
+        p.beginPath();
+        p.roundRect(x, y, w, h, 14);
+        p.fill();
+        p.shadowColor = 'transparent';
+        p.save();
+        p.clip();
+        desenharCover(p, el, d[0], d[1], { x: x - w * 0.02, y: y - h * 0.02, w: w * 1.04, h: h * 1.04 });
+        p.restore();
+        p.beginPath();
+        p.roundRect(x, y, w, h, 14);
+        p.strokeStyle = rgba(OURO_CLARO, 0.85);
+        p.lineWidth = 1.5;
+        p.stroke();
+        if (item.nome) {
+          texto(p, [item.nome], { x: x - gap / 2, y: y0 + h + 10, w: w + gap, h: 34 },
+            Object.assign({}, SUBTITULO, { tamanho: 15, espacamento: 0.15 }));
+        }
+        p.restore();
+      });
     }
 
     entrar(i) {
@@ -474,6 +514,8 @@
         (EFEITOS[f] || EFEITOS.sim)(p, this.W, this.H, t, cores, b);
       } else if (f.imagens) {
         this.desenharGaleria(p, f, cena, cores, t, b);
+      } else if (f.mosaico) {
+        this.desenharMosaico(p, f, cena, cores, t, b);
       } else {
         const modo = f.modo || 'panorama';
         if (modo === 'central') (EFEITOS[cena.efeitoLaterais] || EFEITOS.sim)(p, this.W, this.H, t, cores, b);
@@ -493,8 +535,9 @@
       if (faixa) this.desenharFaixa(p, faixa, t);
 
       // Sobre fotos, o texto vai para a parte de baixo para não cobrir rostos e cartazes.
-      const C = this.central, margem = 36, galeria = !!f.imagens;
-      const A = galeria ? { x: C.x, y: C.y + C.h * 0.56, w: C.w, h: C.h * 0.44 } : C;
+      const C = this.central, margem = 36, galeria = !!f.imagens, mosaico = !!f.mosaico;
+      const A = galeria ? { x: C.x, y: C.y + C.h * 0.56, w: C.w, h: C.h * 0.44 }
+        : mosaico ? { x: C.x, y: C.y + 18, w: C.w, h: 88 } : C;
       const blocos = [];
       if (cena.contagem) {
         const k = cena.contagem;
@@ -539,7 +582,7 @@
       // Empilha os blocos no centro do painel central, encolhendo tudo se não couber.
       const espaco = 22;
       const total = blocos.reduce((s, b) => s + b.h, 0) + espaco * Math.max(0, blocos.length - 1);
-      const escala = Math.min(1, (A.h - (galeria ? 24 : 2 * margem)) / total);
+      const escala = Math.min(1, (A.h - (galeria || mosaico ? 16 : 2 * margem)) / total);
       let y = A.y + (A.h - total * escala) / 2;
       if (galeria && blocos.length) {
         const g = p.createLinearGradient(0, C.y + C.h * 0.35, 0, C.y + C.h);

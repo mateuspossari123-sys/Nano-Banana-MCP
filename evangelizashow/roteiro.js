@@ -9,6 +9,8 @@
  *                          { imagens: ['midia/a.jpg', 'midia/b.jpg'], troca: 10 }  → galeria que troca a cada 10 s,
  *                              com zoom lento e a imagem desfocada nas laterais (bom para músicas de oração).
  *                              Retratos e banners aparecem inteiros; para forçar, use { src, ajuste: 'preencher' | 'conter' }
+ *                          { mosaico: [{ src: 'midia/santos/x.jpg', nome: 'Nome' }, ...] } → retratos lado a lado
+ *                              em molduras douradas no painel central (o título vai para cima)
  *                          { imagem: 'midia/arquivo.jpg', modo: 'central' }
  *               modos:  'panorama' → arquivo 2304×512, ocupa os 9 m (central + laterais)
  *                       'central'  → arquivo 1024×512, só no painel central (laterais usam "efeitoLaterais")
@@ -109,6 +111,21 @@ window.ROTEIRO = {
         'Linha um\nlinha dois',
         'Linha três\nlinha quatro',
       ],
+    },
+    {
+      nome: 'Santos (arte)',
+      entrada: 'cortina',
+      fundo: {
+        mosaico: [
+          { src: 'midia/santos/santa-teresinha.jpg', nome: 'Santa Teresinha' },
+          { src: 'midia/santos/padre-pio.jpg', nome: 'São Padre Pio' },
+          { src: 'midia/santos/joao-paulo-ii.jpg', nome: 'São João Paulo II' },
+          { src: 'midia/santos/santa-faustina.jpg', nome: 'Santa Faustina' },
+          { src: 'midia/santos/madre-teresa.jpg', nome: 'Madre Teresa' },
+        ],
+      },
+      titulo: 'Testemunhas do *SIM*',
+      faixa: '{logo}   30 anos SIM   ',
     },
     {
       nome: 'Diga SIM a Deus (cartaz)',
