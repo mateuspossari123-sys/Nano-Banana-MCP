@@ -5,6 +5,7 @@
  *   nome        nome que aparece só para o operador
  *   fundo       efeito animado: 'sim' (padrão) | 'gradiente' | 'raios' | 'particulas' | 'estrelas' | 'ondas' | 'preto'
  *               efeitos de show, que pulsam na batida: 'varredura' | 'pulso' | 'feixes' | 'tunel' | 'brilhos'
+ *                 | 'pixelado' (ondas de cor em pixel grande) | 'xadrez' (túnel de xadrez com o logo no centro)
  *               ou mídia:  { video: 'midia/arquivo.mp4', modo: 'panorama' }
  *                          { imagens: ['midia/a.jpg', 'midia/b.jpg'], troca: 10 }  → galeria que troca a cada 10 s,
  *                              com zoom lento e a imagem desfocada nas laterais (bom para músicas de oração).
@@ -97,6 +98,34 @@ window.ROTEIRO = {
       letras: [
         'Linha um\nlinha dois',
       ],
+    },
+    {
+      nome: 'Música 4 (pixelado)',
+      entrada: 'cortina',
+      fundo: 'pixelado',
+      cores: ['#021220', '#0e4166', '#2a6f9f', '#9cc8e8', '#fdf0e3', '#d9b36a'],
+      titulo: 'Nome da música 4',
+      subtitulo: 'Artista',
+      letras: [
+        'Linha um\nlinha dois',
+      ],
+    },
+    {
+      nome: 'Música 5 (pixelado colorido)',
+      entrada: 'explosao',
+      fundo: 'pixelado',
+      cores: ['#1b1f6b', '#3d8bff', '#4ad7ff', '#ff5fa2', '#ff9f43', '#ffe08a'],
+      titulo: 'Nome da música 5',
+      subtitulo: 'Artista',
+      letras: [
+        'Linha um\nlinha dois',
+      ],
+    },
+    {
+      nome: 'Túnel xadrez com o logo',
+      entrada: 'cortina',
+      fundo: 'xadrez',
+      cores: ['#021220', '#0e4166', '#d9b36a', '#fdf0e3'],
     },
     {
       nome: 'Louvor (sem letra)',

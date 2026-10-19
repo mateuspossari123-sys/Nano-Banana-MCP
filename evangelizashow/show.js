@@ -7,6 +7,8 @@
  *   feixes     barras de luz correndo pelos 9 m (o desenho muda a cada 8 batidas)
  *   tunel      molduras douradas vindo do centro para fora
  *   brilhos    chuva de brilho dourado
+ *   pixelado   ondas de cor líquidas em degraus de pixel grande (cores da cena = faixas do degradê)
+ *   xadrez     túnel de xadrez girando e avançando, com o logo num círculo no centro
  *
  * Vinhetas (teclas L, V, C, ou campo "entrada" da cena para usar como passagem):
  *   explosao   clarão, onda de choque e faíscas com o logo no centro
@@ -179,6 +181,100 @@
         ctx.fillRect(x - 0.75, y - r * 3, 1.5, r * 6);
       }
     });
+    ctx.restore();
+  };
+
+  // Efeitos calculados ponto a ponto rodam numa tela pequena e são ampliados sem
+  // suavizar: fica leve e os "pixels grandes" fazem parte do visual.
+  function telaBaixa(nome, w, h) {
+    const k = '_' + nome;
+    if (!telaBaixa[k]) {
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      telaBaixa[k] = { c: c, ctx: c.getContext('2d'), img: c.getContext('2d').createImageData(w, h) };
+    }
+    return telaBaixa[k];
+  }
+
+  function rgb(hex) {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function ampliar(ctx, tb, W, H) {
+    tb.ctx.putImageData(tb.img, 0, 0);
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(tb.c, 0, 0, W, H);
+    ctx.restore();
+  }
+
+  const logoShow = new Image();
+  logoShow.src = window.ROTEIRO.logo || '';
+
+  // Pixelado: ondas de cor líquidas em degraus, em blocos de 16 px. As cores da cena
+  // são as faixas do degradê (use 4 a 6 cores; a ordem é a ordem das faixas).
+  EFEITOS.pixelado = function (ctx, W, H, t, c, b) {
+    const bloco = 16, w = Math.ceil(W / bloco), h = Math.ceil(H / bloco);
+    const tb = telaBaixa('pixelado', w, h), d = tb.img.data;
+    const cores = (c.length >= 4 ? c : [c[0], '#0e4166', '#2a6f9f', '#9cc8e8', '#fdf0e3', c[2] || OURO]).map(rgb);
+    const niveis = cores.length * 2, pulso = 0.15 * decai(b.fase, 4);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let v = Math.sin(x * 0.06 + t * 0.5 + Math.sin(y * 0.18 + t * 0.35) * 2.2)
+          + 0.6 * Math.sin((x - y * 1.5) * 0.045 - t * 0.7)
+          + 0.4 * Math.sin(Math.hypot(x - w / 2, (y - h / 2) * 2) * 0.12 - t * 1.1);
+        v = (v + 2) / 4;
+        // Degraus: a cor anda em saltos, como no telão de referência.
+        const q = Math.max(0, Math.min(niveis - 1, Math.floor(v * niveis))) / (niveis - 1) * (cores.length - 1);
+        const i = Math.min(cores.length - 2, Math.floor(q)), f = q - i;
+        const a = cores[i], z = cores[i + 1], o = (y * w + x) * 4;
+        for (let k = 0; k < 3; k++) d[o + k] = Math.min(255, (a[k] + (z[k] - a[k]) * f) * (1 + pulso));
+        d[o + 3] = 255;
+      }
+    }
+    ampliar(ctx, tb, W, H);
+  };
+
+  // Túnel xadrez: xadrez em perspectiva girando e vindo na direção do público, um
+  // passo por batida, com o logo num círculo no centro do painel.
+  EFEITOS.xadrez = function (ctx, W, H, t, c, b) {
+    const bloco = 4, w = Math.ceil(W / bloco), h = Math.ceil(H / bloco);
+    const tb = telaBaixa('xadrez', w, h), d = tb.img.data;
+    const claro = rgb(c[3] || CREME), escuro = rgb(c[0]), meio = rgb(c[1]);
+    const avanco = b.n + suave(b.fase), giro = t * 0.08;
+    const ox = cx / bloco, oy = cy / bloco;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const dx = x - ox, dy = (y - oy) * 1.6, r = Math.hypot(dx, dy) + 0.001;
+        const ang = Math.atan2(dy, dx) + giro + Math.sin(r * 0.04 - t * 0.9) * 0.25;
+        const prof = 260 / r + avanco * 0.5;
+        const casa = (Math.floor(prof * 2) + Math.floor((ang / (Math.PI * 2)) * 24 + 24)) & 1;
+        // Perto do centro o xadrez some no escuro, como profundidade.
+        const nevoa = Math.min(1, r / 70);
+        const cor = casa ? claro : escuro, o = (y * w + x) * 4;
+        for (let k = 0; k < 3; k++) d[o + k] = meio[k] + (cor[k] - meio[k]) * nevoa;
+        d[o + 3] = 255;
+      }
+    }
+    ampliar(ctx, tb, W, H);
+    const raio = C.h * 0.42 * (1 + 0.03 * decai(b.fase, 5));
+    ctx.save();
+    ctx.shadowColor = rgba('#000000', 0.6);
+    ctx.shadowBlur = 40;
+    ctx.beginPath();
+    ctx.arc(cx, cy, raio, 0, Math.PI * 2);
+    ctx.fillStyle = rgba(c[0], 0.92);
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = rgba(OURO_CLARO, 0.8);
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    if (logoShow.complete && logoShow.naturalWidth) {
+      const lh = raio * 1.15, lw = (lh * logoShow.naturalWidth) / logoShow.naturalHeight;
+      ctx.drawImage(logoShow, cx - lw / 2, cy - lh / 2, lw, lh);
+    }
     ctx.restore();
   };
 

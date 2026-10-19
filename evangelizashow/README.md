@@ -83,6 +83,8 @@ botão *Tap tempo*). Tudo fica nas cores da identidade: azul, dourado e creme.
 | `feixes` | barras de luz correndo pelos 9 m (o desenho muda a cada 8 batidas) |
 | `tunel` | molduras douradas vindo do centro para fora |
 | `brilhos` | chuva de brilho dourado |
+| `pixelado` | ondas de cor líquidas em degraus de pixel grande; as `cores` da cena viram as faixas (4 a 6 cores) |
+| `xadrez` | túnel de xadrez girando e avançando um passo por batida, com o logo num círculo no centro |
 
 | Vinheta | O que faz |
 |---|---|
