@@ -211,6 +211,10 @@ window.ROTEIRO = {
       titulo: '*Jesus, eu confio em vós!*',
     },
     {
+      nome: 'Jesus Misericordioso',
+      fundo: { imagem: 'midia/divina-misericordia-panorama.png', modo: 'panorama' },
+    },
+    {
       nome: 'Encerramento',
       entrada: 'explosao',
       fundo: 'raios',
