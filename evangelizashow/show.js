@@ -10,7 +10,8 @@
  *   pixelado   ondas de cor líquidas em degraus de pixel grande (cores da cena = faixas do degradê)
  *   xadrez     túnel de xadrez girando e avançando, com o logo num círculo no centro
  *   amanhecer  noite estrelada que vira dia conforme a "luz" de cada slide da letra
- *   misericordia (fundo { misericordia: pasta, x, coracao }): Jesus aparece e os raios saem do coração
+ *   misericordia (fundo { misericordia: pasta, x, coracao }): acendem as tiras (vermelho e azul), abrem
+ *              os raios com o logo da SIM no central e por fim aparece Jesus Misericordioso
  *
  * Vinhetas (teclas L, V, C, ou campo "entrada" da cena para usar como passagem):
  *   explosao   clarão, onda de choque e faíscas com o logo no centro
@@ -351,6 +352,58 @@
   }
   let raiosTela = null;
 
+  const VERMELHO = '#ff2238', AZUL = '#2f8bff';
+  let logoBicolor = null;
+
+  // Logo da SIM pintado de vermelho (esquerda) a azul (direita), como os raios.
+  function logoMisericordia() {
+    if (logoBicolor || !(logoShow.complete && logoShow.naturalWidth)) return logoBicolor;
+    const c = document.createElement('canvas');
+    c.width = logoShow.naturalWidth;
+    c.height = logoShow.naturalHeight;
+    const x = c.getContext('2d');
+    x.drawImage(logoShow, 0, 0);
+    x.globalCompositeOperation = 'source-in';
+    const g = x.createLinearGradient(0, 0, c.width, 0);
+    g.addColorStop(0, VERMELHO);
+    g.addColorStop(0.42, '#ff6b7a');
+    g.addColorStop(0.58, '#7ab8ff');
+    g.addColorStop(1, AZUL);
+    x.fillStyle = g;
+    x.fillRect(0, 0, c.width, c.height);
+    logoBicolor = c;
+    return c;
+  }
+
+  // Leque de raios do centro do painel: vermelhos para a esquerda, azuis para a direita.
+  function leque(ctx, x, y, alcance, alfa, t) {
+    const n = 40;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + t * 0.04;
+      const cor = Math.cos(a) < 0 ? VERMELHO : AZUL;
+      const w = 0.03 + 0.015 * Math.sin(i * 2.3 + t);
+      const L = alcance * (0.75 + 0.25 * Math.sin(i * 1.7));
+      const g = ctx.createRadialGradient(x, y, 0, x, y, Math.max(1, L));
+      g.addColorStop(0, rgba('#ffffff', 0.5 * alfa));
+      g.addColorStop(0.15, rgba(cor, 0.6 * alfa));
+      g.addColorStop(1, rgba(cor, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(a - w) * L, y + Math.sin(a - w) * L);
+      ctx.lineTo(x + Math.cos(a + w) * L, y + Math.sin(a + w) * L);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  // Misericórdia, em quatro tempos:
+  //   1) acendem as tiras de cima (vermelho de um lado, azul do outro);
+  //   2) acendem as tiras de baixo;
+  //   3) no central, os raios se abrem do centro com o logo da SIM em vermelho e azul;
+  //   4) o logo dá lugar a Jesus Misericordioso, com os raios saindo do coração.
+  // Usa as camadas de midia/misericordia-vN/ (fundo, pintura, raios).
+  // Na cena: fundo: { misericordia: 'midia/misericordia-v1', x: 972, coracao: [1166, 159] }
   window.LED.misericordia = function (ctx, W, H, t, f, m) {
     const fundo = camada(f.misericordia + '/fundo.jpg');
     const pintura = camada(f.misericordia + '/pintura.png');
@@ -360,65 +413,110 @@
     if (!fundo || !pintura || !raios) return;
     const tc = (Date.now() - m.entradaEm) / 1000;
     const [hx, hy] = f.coracao;
+    const respira = 0.88 + 0.12 * Math.sin(t * 1.3);
 
-    // 1) Jesus aparece (0,4 s a 3 s), com um leve zoom saindo do escuro.
-    const aparece = suave(lim((tc - 0.4) / 2.6));
-    const zoom = 1.06 - 0.06 * desacelera(lim((tc - 0.4) / 4));
-    // 2) O fundo azul vem logo atrás (1,5 s a 4 s).
-    ctx.globalAlpha = suave(lim((tc - 1.5) / 2.5));
-    ctx.drawImage(fundo, 0, 0, W, H);
-    ctx.globalAlpha = aparece;
-    const pw = pintura.naturalWidth * zoom, ph = pintura.naturalHeight * zoom;
-    const px = hx + (f.x - hx) * zoom, py = hy - hy * zoom;
-    ctx.drawImage(pintura, px, py, pw, ph);
-    ctx.globalAlpha = 1;
-
-    // 3) Brilho no coração (3,2 s a 4,5 s) e os raios saindo dele (3,6 s a 7,5 s).
+    // 1 e 2) As tiras: os raios da arte recortados em cada tira, de cima e depois de baixo.
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    const flash = lim((tc - 3.2) / 0.5) * (1 - lim((tc - 3.7) / 1.4));
-    if (flash > 0) halo(ctx, hx, hy, 70 + 50 * flash, '#ffffff', 0.75 * flash);
-    const abre = desacelera(lim((tc - 3.6) / 3.9));
-    if (abre > 0) {
-      if (!raiosTela) {
-        raiosTela = document.createElement('canvas');
-        raiosTela.width = W;
-        raiosTela.height = H;
+    TIRAS.forEach(r => {
+      const inicio = r.y < 200 ? 0.4 : 1.6;
+      const v = suave(lim((tc - inicio) / 0.7));
+      if (v <= 0) return;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(r.x, r.y, r.w, r.h);
+      ctx.clip();
+      ctx.globalAlpha = v * respira;
+      // Duas vezes: nas tiras os raios precisam aparecer bem, sozinhos no escuro.
+      ctx.drawImage(raios, r.x, r.y, r.w, r.h, r.x, r.y, r.w, r.h);
+      ctx.globalAlpha = v * 0.6;
+      ctx.drawImage(raios, r.x, r.y, r.w, r.h, r.x, r.y, r.w, r.h);
+      // Brilho que corre do lado do centro para a ponta quando a tira acende.
+      const corre = lim((tc - inicio) / 1.1);
+      if (corre < 1) {
+        const esquerda = r.x < C.x;
+        const xb = esquerda ? r.x + r.w * (1 - corre) : r.x + r.w * corre;
+        const g = ctx.createLinearGradient(xb - 90, 0, xb + 90, 0);
+        g.addColorStop(0, 'rgba(255,255,255,0)');
+        g.addColorStop(0.5, rgba(esquerda ? '#ff8a96' : '#9cc8ff', 0.9 * (1 - corre)));
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = g;
+        ctx.fillRect(r.x, r.y, r.w, r.h);
       }
-      const rc = raiosTela.getContext('2d');
-      rc.globalCompositeOperation = 'source-over';
-      rc.clearRect(0, 0, W, H);
-      rc.drawImage(raios, 0, 0, W, H);
-      // Máscara redonda crescendo a partir do coração, com a ponta dos raios suave.
-      const alcance = 40 + abre * 1500;
-      const g = rc.createRadialGradient(hx, hy, 0, hx, hy, alcance);
-      g.addColorStop(0, 'rgba(0,0,0,1)');
-      g.addColorStop(0.75, 'rgba(0,0,0,1)');
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      rc.globalCompositeOperation = 'destination-in';
-      rc.fillStyle = g;
-      rc.fillRect(0, 0, W, H);
-      // 4) Depois de abertos, os raios "respiram" devagar.
-      ctx.globalAlpha = (0.88 + 0.12 * Math.sin(t * 1.3)) * lim((tc - 3.6) / 0.6);
-      ctx.drawImage(raiosTela, 0, 0);
-      ctx.globalAlpha = 1;
-      // Brilho que corre pelos raios de dentro para fora, de vez em quando.
-      const onda = ((tc - 7.5) % 6) / 6;
-      if (tc > 7.5) {
-        const r0 = onda * 1600;
-        const gw = ctx.createRadialGradient(hx, hy, Math.max(0, r0 - 120), hx, hy, r0 + 120);
-        gw.addColorStop(0, 'rgba(0,0,0,0)');
-        gw.addColorStop(0.5, 'rgba(255,255,255,1)');
-        gw.addColorStop(1, 'rgba(0,0,0,0)');
-        rc.globalCompositeOperation = 'source-in';
-        rc.fillStyle = gw;
-        rc.fillRect(0, 0, W, H);
-        ctx.globalAlpha = 0.25 * (1 - onda);
-        ctx.drawImage(raiosTela, 0, 0);
+      ctx.restore();
+    });
+    ctx.restore();
+
+    // 3) Raios do centro e logo bicolor (abrem em 2,8 s; saem entre 7,5 s e 9 s).
+    const sai = suave(lim((tc - 7.5) / 1.5));
+    const abre = desacelera(lim((tc - 2.8) / 1.8));
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(C.x, C.y, C.w, C.h);
+    ctx.clip();
+    if (abre > 0 && sai < 1) {
+      ctx.globalCompositeOperation = 'lighter';
+      const fl = lim((tc - 2.8) / 0.3) * (1 - lim((tc - 3.1) / 0.9));
+      if (fl > 0) halo(ctx, cx, cy, 120 + 260 * fl, '#ffffff', 0.8 * fl);
+      leque(ctx, cx, cy, 80 + abre * 720, (1 - sai) * respira, t);
+      halo(ctx, cx, cy, 180, '#ffffff', 0.25 * abre * (1 - sai));
+      ctx.globalCompositeOperation = 'source-over';
+      const lg = logoMisericordia();
+      const entra = suave(lim((tc - 3.2) / 1.2));
+      if (lg && entra > 0) {
+        // Disco escuro e suave atrás do logo, para ele não se misturar com os raios.
+        const dg = ctx.createRadialGradient(cx, cy, 0, cx, cy, C.h * 0.42);
+        dg.addColorStop(0, `rgba(2,6,16,${0.92 * entra * (1 - sai)})`);
+        dg.addColorStop(0.7, `rgba(2,6,16,${0.85 * entra * (1 - sai)})`);
+        dg.addColorStop(1, 'rgba(2,6,16,0)');
+        ctx.fillStyle = dg;
+        ctx.fillRect(C.x, C.y, C.w, C.h);
+        const lh = C.h * 0.62 * (0.85 + 0.15 * entra) * (1 + 0.02 * Math.sin(t * 1.5));
+        const lw = (lh * lg.width) / lg.height;
+        ctx.globalAlpha = entra * (1 - sai);
+        ctx.shadowColor = 'rgba(255,255,255,0.8)';
+        ctx.shadowBlur = 30;
+        ctx.drawImage(lg, cx - lw / 2, cy - lh / 2, lw, lh);
+        ctx.shadowBlur = 0;
         ctx.globalAlpha = 1;
       }
     }
-    halo(ctx, hx, hy, 70, '#ffffff', 0.35 * lim((tc - 3.4) / 1) * (0.8 + 0.2 * Math.sin(t * 2)));
+
+    // 4) Jesus Misericordioso aparece (8 s a 11 s) e os raios passam a sair do coração.
+    const jesus = suave(lim((tc - 8) / 3));
+    if (jesus > 0) {
+      ctx.globalAlpha = jesus;
+      ctx.drawImage(fundo, 0, 0, W, H);
+      const zoom = 1.04 - 0.04 * desacelera(lim((tc - 8) / 4));
+      ctx.drawImage(pintura, hx + (f.x - hx) * zoom, hy - hy * zoom, pintura.naturalWidth * zoom, pintura.naturalHeight * zoom);
+      ctx.globalCompositeOperation = 'lighter';
+      const raioC = desacelera(lim((tc - 9.5) / 2.5));
+      if (raioC > 0) {
+        if (!raiosTela) {
+          raiosTela = document.createElement('canvas');
+          raiosTela.width = W;
+          raiosTela.height = H;
+        }
+        const rc = raiosTela.getContext('2d');
+        rc.globalCompositeOperation = 'source-over';
+        rc.clearRect(0, 0, W, H);
+        rc.drawImage(raios, 0, 0, W, H);
+        const alcance = 40 + raioC * 900;
+        const g = rc.createRadialGradient(hx, hy, 0, hx, hy, alcance);
+        g.addColorStop(0, 'rgba(0,0,0,1)');
+        g.addColorStop(0.75, 'rgba(0,0,0,1)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        rc.globalCompositeOperation = 'destination-in';
+        rc.fillStyle = g;
+        rc.fillRect(0, 0, W, H);
+        ctx.globalAlpha = respira * lim((tc - 9.5) / 0.6);
+        ctx.drawImage(raiosTela, 0, 0);
+      }
+      ctx.globalAlpha = 0.35 * jesus * (0.8 + 0.2 * Math.sin(t * 2));
+      halo(ctx, hx, hy, 70, '#ffffff', 1);
+      ctx.globalAlpha = 1;
+    }
     ctx.restore();
   };
 
