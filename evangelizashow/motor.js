@@ -755,6 +755,15 @@
         if (cena.animarEntrada && !b.logo) {
           // Cada linha entra em sequência (a partir de 1,6 s), subindo de leve.
           const n = b.linhas.length, base = p.globalAlpha;
+          // Todas as linhas do bloco com o mesmo tamanho: o da linha que precisa ser menor.
+          const esp = b.o.espacamento || 0;
+          const caber = l => {
+            const t0 = b.o.caixaAlta ? l.toUpperCase() : l;
+            p.letterSpacing = `${esp * b.o.tamanho}px`;
+            return b.o.tamanho * Math.min(1, ((r.w * 0.94) / larguraLinha(p, t0, b.o, b.o.tamanho)), (r.h / n) / (1.18 * b.o.tamanho));
+          };
+          const oLinha = Object.assign({}, b.o, { tamanho: Math.min(...b.linhas.map(caber)) });
+          p.letterSpacing = '0px';
           b.linhas.forEach((l, k) => {
             const e = suaveM(limM((tE - 1.6 - ordem * 0.65) / 0.8));
             ordem++;
@@ -762,13 +771,13 @@
             p.save();
             p.globalAlpha = base * e;
             const sub = { x: r.x, y: r.y + (r.h / n) * k + 18 * (1 - e), w: r.w, h: r.h / n };
-            texto(p, [l], sub, b.o);
+            texto(p, [l], sub, oLinha);
             // Brilho rápido quando a linha chega.
             const brilho = limM((tE - 1.6 - (ordem - 1) * 0.65 - 0.4) / 0.25) * (1 - limM((tE - 1.6 - (ordem - 1) * 0.65 - 0.65) / 0.6));
             if (brilho > 0) {
               p.globalCompositeOperation = 'lighter';
               p.globalAlpha = 0.5 * brilho;
-              texto(p, [l], sub, b.o);
+              texto(p, [l], sub, oLinha);
             }
             p.restore();
           });

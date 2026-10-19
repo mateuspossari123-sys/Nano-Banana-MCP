@@ -239,6 +239,15 @@ window.ROTEIRO = {
       faixa: '{logo}   30 anos SIM   ',
     },
     {
+      nome: 'Frei Luan',
+      animarEntrada: true,
+      fundo: { imagem: 'midia/frei-luan-central.jpg', modo: 'central' },
+      textoLado: 'esquerda',
+      titulo: 'Frei\n*Luan*',
+      subtitulo: 'Carmelitas Mensageiros\ndo Espírito Santo',
+      faixa: '{logo}   30 anos SIM   ',
+    },
+    {
       nome: 'Encerramento',
       entrada: 'explosao',
       fundo: 'raios',
