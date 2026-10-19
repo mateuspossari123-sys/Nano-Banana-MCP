@@ -17,7 +17,7 @@
   const CORES_PADRAO = ['#021220', '#0e4166', '#d9b36a'];
   const TITULO = { familia: SERIFA, peso: 800, cor: CREME, corDestaque: OURO };
   const SUBTITULO = { familia: SANS, peso: 700, tamanho: 34, cor: OURO_CLARO, caixaAlta: true, espacamento: 0.3 };
-  const LETRA = { familia: SANS, peso: 700, tamanho: 76, cor: '#ffffff' };
+  const LETRA = { familia: SANS, peso: 700, tamanho: 76, cor: '#ffffff', corDestaque: OURO_CLARO };
 
   function rgba(hex, a) {
     let h = hex.replace('#', '');
@@ -233,7 +233,8 @@
       trechos(l).forEach(p => {
         ctx.font = fonte(o, p.d, s);
         ctx.fillStyle = p.d ? o.corDestaque || o.cor : o.cor;
-        ctx.fillText(p.t, x, y0 + i * s * 1.18);
+        // Em fundo claro a sombra é desenhada mais vezes, para o texto "descolar" do céu.
+        for (let k = 0; k < (o.reforco || 1); k++) ctx.fillText(p.t, x, y0 + i * s * 1.18);
         x += ctx.measureText(p.t).width;
       });
     });
@@ -491,6 +492,7 @@
 
     entrar(i) {
       this.entradaEm = Date.now();
+      this.luz = 0;
       const atual = this.midiaDe(this.rot.cenas[i].fundo);
       if (atual instanceof HTMLVideoElement) {
         atual.currentTime = 0;
@@ -522,7 +524,12 @@
         this.entrar(novo.cena);
       }
       if (novo.vinheta && (!this.estado.vinheta || novo.vinheta.t0 !== this.estado.vinheta.t0)) this.vinheta = novo.vinheta;
-      if (novo.linha !== this.estado.linha || novo.cena !== this.estado.cena) this.linhaEm = performance.now();
+      if (novo.linha !== this.estado.linha || novo.cena !== this.estado.cena) {
+        this.linhaEm = performance.now();
+        // Slide de letra com vinheta própria (ex.: raios quando entra o refrão).
+        const slide = (this.rot.cenas[novo.cena].letras || [])[novo.linha];
+        if (slide && slide.vinheta && VINHETAS[slide.vinheta]) this.vinheta = { tipo: slide.vinheta, t0: Date.now() };
+      }
       this.estado = Object.assign({}, novo);
     }
 
@@ -538,6 +545,7 @@
 
     desenhar(agora, dt) {
       const p = this.pctx, t = agora / 1000;
+      this.dt = Math.min(0.1, dt || 0);
       p.save();
       p.fillStyle = '#000';
       p.fillRect(0, 0, this.W, this.H);
@@ -584,6 +592,13 @@
     desenharCena(p, cena, t, agora) {
       const cores = cena.cores || this.rot.cores || CORES_PADRAO;
       const f = cena.fundo || 'sim', b = this.batida();
+
+      // "Luz" da letra (0 = noite, 1 = dia): cada slide pode definir a sua, e quem não
+      // define herda a do slide anterior. A mudança é suave, para o céu clarear aos poucos.
+      let alvo = 0;
+      (cena.letras || []).slice(0, this.estado.linha + 1).forEach(sl => { if (sl && sl.luz != null) alvo = sl.luz; });
+      this.luz = (this.luz || 0) + (alvo - (this.luz || 0)) * Math.min(1, this.dt * 0.8);
+      b.luz = this.luz;
 
       // Vinheta automática a cada N batidas (ex.: raios no refrão).
       const auto = cena.automatico;
@@ -641,10 +656,13 @@
         if (k.texto) blocos.push({ linhas: [k.texto], o: SUBTITULO, h: 44 });
         blocos.push({ linhas: [mmss], o: Object.assign({ tamanho: 240 }, TITULO), h: 260 });
       } else if (this.estado.linha >= 0 && cena.letras) {
-        const linhas = cena.letras[this.estado.linha].split('\n');
-        blocos.push({ linhas: linhas, o: LETRA, h: C.h - 2 * margem });
+        const slide = cena.letras[this.estado.linha];
+        const linhas = (typeof slide === 'string' ? slide : slide.texto).split('\n');
+        const claro = f === 'amanhecer';
+        blocos.push({ linhas: linhas, o: claro ? Object.assign({}, LETRA, { sombra: 'rgba(2,12,30,0.95)', corDestaque: '#ffe3a3', reforco: 3 }) : LETRA, h: C.h - 2 * margem });
         // Sombra suave atrás da letra: sobre efeitos fortes ela continua legível.
-        if (!galeria) {
+        // Céus claros (amanhecer) não levam a mancha escura: ela acinzenta o sol.
+        if (!galeria && f !== 'amanhecer') {
           const g = p.createRadialGradient(C.x + C.w / 2, C.y + C.h / 2, 0, C.x + C.w / 2, C.y + C.h / 2, C.w * 0.55);
           g.addColorStop(0, 'rgba(2,18,32,0.7)');
           g.addColorStop(1, 'rgba(2,18,32,0)');

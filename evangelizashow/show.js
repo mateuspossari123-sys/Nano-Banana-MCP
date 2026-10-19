@@ -9,6 +9,7 @@
  *   brilhos    chuva de brilho dourado
  *   pixelado   ondas de cor líquidas em degraus de pixel grande (cores da cena = faixas do degradê)
  *   xadrez     túnel de xadrez girando e avançando, com o logo num círculo no centro
+ *   amanhecer  noite estrelada que vira dia conforme a "luz" de cada slide da letra
  *
  * Vinhetas (teclas L, V, C, ou campo "entrada" da cena para usar como passagem):
  *   explosao   clarão, onda de choque e faíscas com o logo no centro
@@ -274,6 +275,63 @@
     if (logoShow.complete && logoShow.naturalWidth) {
       const lh = raio * 1.15, lw = (lh * logoShow.naturalWidth) / logoShow.naturalHeight;
       ctx.drawImage(logoShow, cx - lw / 2, cy - lh / 2, lw, lh);
+    }
+    ctx.restore();
+  };
+
+  function mistura(a, z, f) {
+    const x = rgb(a), y = rgb(z);
+    return '#' + x.map((v, k) => Math.round(v + (y[k] - v) * f).toString(16).padStart(2, '0')).join('');
+  }
+
+  // Amanhecer: noite estrelada que clareia conforme a "luz" dos slides da letra
+  // (0 = noite, 1 = sol nascido, com raios). Feito para "Sentinela da Manhã".
+  EFEITOS.amanhecer = function (ctx, W, H, t, c, b) {
+    const luz = lim(b.luz || 0);
+    const ceu = ctx.createLinearGradient(0, 0, 0, H);
+    ceu.addColorStop(0, mistura('#01060f', '#123e6e', luz));
+    ceu.addColorStop(0.6, mistura('#03102a', '#2c6aa0', luz));
+    ceu.addColorStop(1, mistura('#061a3a', '#f2b45c', luz));
+    ctx.fillStyle = ceu;
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    // Estrelas somem com o dia.
+    const estrelas = 1 - lim(luz * 1.6);
+    if (estrelas > 0) {
+      PARTICULAS.forEach((p, i) => {
+        const r = 2 + p.t * 5;
+        ctx.globalAlpha = estrelas * Math.max(0, 0.2 + 0.8 * Math.sin(t * (0.8 + p.v * 20) + p.f));
+        ctx.drawImage(brilho(i % 6 ? CREME : OURO_CLARO), ((p.x + t * 0.002) % 1) * W - r, p.y * H * 0.8 - r, r * 2, r * 2);
+      });
+      ctx.globalAlpha = 1;
+    }
+    // Clarão no horizonte, depois o sol subindo atrás do painel central.
+    halo(ctx, cx, H + 40, W * (0.25 + 0.35 * luz), OURO, 0.15 + 0.55 * luz);
+    const sol = H + 140 - suave(lim((luz - 0.3) / 0.7)) * H * 0.78;
+    halo(ctx, cx, sol, 260, '#ffe9b8', 0.9 * lim((luz - 0.25) * 2));
+    ctx.globalAlpha = lim((luz - 0.3) * 2);
+    ctx.beginPath();
+    ctx.arc(cx, sol, 95, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff4dc';
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // Com o sol no alto, raios girando devagar e pulsando na batida.
+    const raios = lim((luz - 0.7) / 0.3) * (0.55 + 0.45 * decai(b.fase, 3));
+    if (raios > 0) {
+      for (let i = 0; i < 26; i++) {
+        const a = (i / 26) * Math.PI * 2 + t * 0.05, w = 0.035, L = W * 0.7;
+        const g = ctx.createRadialGradient(cx, sol, 0, cx, sol, L);
+        g.addColorStop(0, rgba('#fff4dc', 0.45 * raios));
+        g.addColorStop(1, rgba(OURO, 0));
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(cx, sol);
+        ctx.lineTo(cx + Math.cos(a - w) * L, sol + Math.sin(a - w) * L);
+        ctx.lineTo(cx + Math.cos(a + w) * L, sol + Math.sin(a + w) * L);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
     ctx.restore();
   };

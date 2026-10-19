@@ -175,7 +175,8 @@
 
     $('atual').textContent = c.nome;
     $('letras').innerHTML = '';
-    const itens = [c.titulo ? `Título: ${c.titulo.replace(/\*/g, '')}` : 'Abertura da cena'].concat(c.letras || []);
+    const itens = [c.titulo ? `Título: ${c.titulo.replace(/\*/g, '')}` : 'Abertura da cena']
+      .concat((c.letras || []).map(sl => (typeof sl === 'string' ? sl : sl.texto).replace(/\*/g, '')));
     if (c.letras || c.titulo) {
       itens.forEach((txt, i) => {
         const li = document.createElement('li');

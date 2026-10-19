@@ -21,7 +21,9 @@
  *   efeitoLaterais  efeito das laterais quando o fundo é 'central' (padrão: 'sim')
  *   cores       [fundo, cor de luz 1, cor de luz 2, ...]
  *   titulo, subtitulo   texto no painel central; no título, *palavra* sai em itálico dourado
- *   letras      lista de slides de letra; use \n para quebrar linha (máx. 2 linhas por slide)
+ *   letras      lista de slides de letra; use \n para quebrar linha (máx. 2 linhas por slide) e
+ *               *palavra* para destacar em dourado. Um slide também pode ser
+ *               { texto, luz: 0..1 (para o fundo 'amanhecer'), vinheta: 'raios' (dispara ao entrar) }
  *   faixa       texto que corre nas tiras laterais; {logo} vira o logo correndo junto
  *   contagem    { minutos: 5 }  ou  { ate: '19:30' }  — mostra relógio regressivo no central
  *   logo        true → mostra o logo (ROTEIRO.logo) no painel central
@@ -62,16 +64,39 @@ window.ROTEIRO = {
       titulo: 'Evangeliza*show*',
     },
     {
-      nome: 'Música 1',
+      nome: 'Sentinela da Manhã',
       entrada: 'cortina',
-      fundo: 'pulso',
-      cores: ['#021220', '#0e4166', '#d9b36a'],
-      titulo: 'Nome da música 1',
-      subtitulo: 'Artista',
+      fundo: 'amanhecer',
+      titulo: 'Sentinela da *Manhã*',
+      subtitulo: 'Gerados pela Imaculada',
+      // "luz": 0 = noite, 1 = sol nascido. O céu acompanha a letra; no refrão o sol nasce.
       letras: [
-        'Primeira linha da letra\nsegunda linha da letra',
-        'Terceira linha da letra\nquarta linha da letra',
-        'Refrão linha um\nrefrão linha dois',
+        { texto: 'No coração da noite\npode o medo chegar', luz: 0 },
+        { texto: 'Espero ansiosamente\na luz da aurora aparecer', luz: 0.1 },
+        { texto: 'Eu sei, que a manhã logo vem\nvem o alvorecer de um novo tempo', luz: 0.25 },
+        { texto: 'Mas ainda é *noite*', luz: 0 },
+        { texto: 'No coração da noite\npode o medo chegar', luz: 0 },
+        { texto: 'Espero ansiosamente\na luz da aurora aparecer', luz: 0.1 },
+        { texto: 'Eu sei, que a manhã logo vem\nvem o alvorecer de um novo tempo', luz: 0.25 },
+        { texto: 'Mas ainda é *noite*', luz: 0 },
+        { texto: 'Tenho um posto pra guardar\n*(sou sentinela)*', luz: 0.35 },
+        { texto: 'Sou chamado a anunciar\n*(sou sentinela)*', luz: 0.45 },
+        { texto: 'Até meu nome Deus trocou\nagora eu já sei quem sou, eu sou', luz: 0.6 },
+        { texto: '*Sentinela da manhã*\nque anuncia a chegada do Sol', luz: 1, vinheta: 'raios' },
+        { texto: 'Proclama que\n*Jesus ressuscitou*' },
+        { texto: '*Sentinela da manhã*\nque anuncia a chegada do Sol' },
+        { texto: 'Proclama que\n*Jesus ressuscitou*' },
+        { texto: 'Eu sei que o dia vem\nvem, *maranathá* vem', luz: 0.55 },
+        { texto: 'Jesus minha esperança\nque nunca me engana', luz: 0.5 },
+        { texto: 'Eu sei, o mundo quer sua luz\nquer o alvorecer de um novo tempo', luz: 0.4 },
+        { texto: 'Mas ainda é *noite*', luz: 0.05 },
+        { texto: 'Tenho um posto pra guardar\n*(sou sentinela)*', luz: 0.35 },
+        { texto: 'Sou chamado a anunciar\n*(sou sentinela)*', luz: 0.45 },
+        { texto: 'Até meu nome Deus trocou\nagora eu já sei quem sou, eu sou', luz: 0.6 },
+        { texto: '*Sentinela da manhã*\nque anuncia a chegada do Sol', luz: 1, vinheta: 'raios' },
+        { texto: 'Proclama que\n*Jesus ressuscitou*' },
+        { texto: '*Sentinela da manhã*\nque anuncia a chegada do Sol', vinheta: 'raios' },
+        { texto: 'Proclama que\n*Jesus ressuscitou*' },
       ],
     },
     {

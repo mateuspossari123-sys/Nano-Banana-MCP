@@ -63,7 +63,10 @@ todos os campos. Os principais são:
 
 - `titulo` / `subtitulo`: no título, `*palavra*` sai em itálico dourado, como o
   "App *SIM*" da identidade;
-- `letras`: lista de slides, com `\n` para quebrar a linha;
+- `letras`: lista de slides, com `\n` para quebrar a linha e `*palavra*` para
+  destacar em dourado. Um slide também pode ser `{ texto, luz, vinheta }`: `luz` comanda
+  o céu do fundo `amanhecer`, e `vinheta` dispara uma vinheta quando o slide entra
+  (ex.: raios no começo do refrão);
 - `fundo`: um efeito animado (`sim`, `raios`, `particulas`, `estrelas`, `ondas`,
   `gradiente`, `preto`) ou um vídeo/imagem da pasta `midia/`;
 - `faixa`: texto que corre nas tiras laterais, onde `{logo}` vira o logo correndo junto
@@ -85,6 +88,7 @@ botão *Tap tempo*). Tudo fica nas cores da identidade: azul, dourado e creme.
 | `brilhos` | chuva de brilho dourado |
 | `pixelado` | ondas de cor líquidas em degraus de pixel grande; as `cores` da cena viram as faixas (4 a 6 cores) |
 | `xadrez` | túnel de xadrez girando e avançando um passo por batida, com o logo num círculo no centro |
+| `amanhecer` | noite estrelada que vira dia acompanhando a letra: cada slide pode ter `luz` de 0 (noite) a 1 (sol nascido, com raios) |
 
 | Vinheta | O que faz |
 |---|---|
