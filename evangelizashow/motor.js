@@ -640,7 +640,9 @@
 
       // Sobre fotos, o texto vai para a parte de baixo para não cobrir rostos e cartazes.
       const C = this.central, margem = 36, galeria = !!f.imagens, mosaico = !!(f.mosaico || f.rostos);
-      const A = galeria ? { x: C.x, y: C.y + C.h * 0.56, w: C.w, h: C.h * 0.44 }
+      // textoLado: 'direita' | 'esquerda' põe o texto só numa metade do central (retratos).
+      const A = cena.textoLado ? { x: C.x + (cena.textoLado === 'direita' ? C.w * 0.47 : 0), y: C.y, w: C.w * 0.53, h: C.h }
+        : galeria ? { x: C.x, y: C.y + C.h * 0.56, w: C.w, h: C.h * 0.44 }
         : mosaico ? { x: C.x, y: C.y + 18, w: C.w, h: 88 } : C;
       const blocos = [];
       if (cena.contagem) {
@@ -702,7 +704,7 @@
       p.save();
       p.globalAlpha = Math.min(1, (agora - this.linhaEm) / 300);
       blocos.forEach(b => {
-        const r = { x: C.x + margem, y: y, w: C.w - 2 * margem, h: b.h * escala };
+        const r = { x: A.x + margem, y: y, w: A.w - 2 * margem, h: b.h * escala };
         if (b.logo) {
           const s = Math.min(r.w / this.logo.naturalWidth, r.h / this.logo.naturalHeight);
           const w = this.logo.naturalWidth * s, h = this.logo.naturalHeight * s;

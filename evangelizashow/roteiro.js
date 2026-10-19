@@ -227,6 +227,15 @@ window.ROTEIRO = {
       fundo: { imagem: 'midia/divina-misericordia-2-panorama.png', modo: 'panorama' },
     },
     {
+      nome: 'Reinaldo Alguz (fundador)',
+      entrada: 'cortina',
+      fundo: { imagem: 'midia/reinaldo-central.jpg', modo: 'central' },
+      textoLado: 'direita',
+      titulo: 'Reinaldo\n*Alguz*',
+      subtitulo: 'Fundador da Comunidade SIM',
+      faixa: '{logo}   30 anos SIM   ',
+    },
+    {
       nome: 'Encerramento',
       entrada: 'explosao',
       fundo: 'raios',
