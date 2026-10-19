@@ -215,6 +215,10 @@ window.ROTEIRO = {
       fundo: { imagem: 'midia/divina-misericordia-panorama.png', modo: 'panorama' },
     },
     {
+      nome: 'Jesus Misericordioso (versão 2)',
+      fundo: { imagem: 'midia/divina-misericordia-2-panorama.png', modo: 'panorama' },
+    },
+    {
       nome: 'Encerramento',
       entrada: 'explosao',
       fundo: 'raios',
