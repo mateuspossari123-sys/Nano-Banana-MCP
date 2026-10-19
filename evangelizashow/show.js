@@ -10,6 +10,7 @@
  *   pixelado   ondas de cor líquidas em degraus de pixel grande (cores da cena = faixas do degradê)
  *   xadrez     túnel de xadrez girando e avançando, com o logo num círculo no centro
  *   amanhecer  noite estrelada que vira dia conforme a "luz" de cada slide da letra
+ *   misericordia (fundo { misericordia: pasta, x, coracao }): Jesus aparece e os raios saem do coração
  *
  * Vinhetas (teclas L, V, C, ou campo "entrada" da cena para usar como passagem):
  *   explosao   clarão, onda de choque e faíscas com o logo no centro
@@ -333,6 +334,91 @@
         ctx.fill();
       }
     }
+    ctx.restore();
+  };
+
+  // Misericórdia: Jesus aparece no escuro, o coração brilha e os raios saem dele e se
+  // espalham até as tiras. Usa as camadas de midia/misericordia-vN/ (fundo, pintura, raios).
+  // Na cena: fundo: { misericordia: 'midia/misericordia-v1', x: 972, coracao: [1166, 159] }
+  const camadas = {};
+  function camada(src) {
+    if (!camadas[src]) {
+      camadas[src] = new Image();
+      camadas[src].src = src;
+    }
+    const im = camadas[src];
+    return im.complete && im.naturalWidth ? im : null;
+  }
+  let raiosTela = null;
+
+  window.LED.misericordia = function (ctx, W, H, t, f, m) {
+    const fundo = camada(f.misericordia + '/fundo.jpg');
+    const pintura = camada(f.misericordia + '/pintura.png');
+    const raios = camada(f.misericordia + '/raios.jpg');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+    if (!fundo || !pintura || !raios) return;
+    const tc = (Date.now() - m.entradaEm) / 1000;
+    const [hx, hy] = f.coracao;
+
+    // 1) Jesus aparece (0,4 s a 3 s), com um leve zoom saindo do escuro.
+    const aparece = suave(lim((tc - 0.4) / 2.6));
+    const zoom = 1.06 - 0.06 * desacelera(lim((tc - 0.4) / 4));
+    // 2) O fundo azul vem logo atrás (1,5 s a 4 s).
+    ctx.globalAlpha = suave(lim((tc - 1.5) / 2.5));
+    ctx.drawImage(fundo, 0, 0, W, H);
+    ctx.globalAlpha = aparece;
+    const pw = pintura.naturalWidth * zoom, ph = pintura.naturalHeight * zoom;
+    const px = hx + (f.x - hx) * zoom, py = hy - hy * zoom;
+    ctx.drawImage(pintura, px, py, pw, ph);
+    ctx.globalAlpha = 1;
+
+    // 3) Brilho no coração (3,2 s a 4,5 s) e os raios saindo dele (3,6 s a 7,5 s).
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const flash = lim((tc - 3.2) / 0.5) * (1 - lim((tc - 3.7) / 1.4));
+    if (flash > 0) halo(ctx, hx, hy, 70 + 50 * flash, '#ffffff', 0.75 * flash);
+    const abre = desacelera(lim((tc - 3.6) / 3.9));
+    if (abre > 0) {
+      if (!raiosTela) {
+        raiosTela = document.createElement('canvas');
+        raiosTela.width = W;
+        raiosTela.height = H;
+      }
+      const rc = raiosTela.getContext('2d');
+      rc.globalCompositeOperation = 'source-over';
+      rc.clearRect(0, 0, W, H);
+      rc.drawImage(raios, 0, 0, W, H);
+      // Máscara redonda crescendo a partir do coração, com a ponta dos raios suave.
+      const alcance = 40 + abre * 1500;
+      const g = rc.createRadialGradient(hx, hy, 0, hx, hy, alcance);
+      g.addColorStop(0, 'rgba(0,0,0,1)');
+      g.addColorStop(0.75, 'rgba(0,0,0,1)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      rc.globalCompositeOperation = 'destination-in';
+      rc.fillStyle = g;
+      rc.fillRect(0, 0, W, H);
+      // 4) Depois de abertos, os raios "respiram" devagar.
+      ctx.globalAlpha = (0.88 + 0.12 * Math.sin(t * 1.3)) * lim((tc - 3.6) / 0.6);
+      ctx.drawImage(raiosTela, 0, 0);
+      ctx.globalAlpha = 1;
+      // Brilho que corre pelos raios de dentro para fora, de vez em quando.
+      const onda = ((tc - 7.5) % 6) / 6;
+      if (tc > 7.5) {
+        const r0 = onda * 1600;
+        const gw = ctx.createRadialGradient(hx, hy, Math.max(0, r0 - 120), hx, hy, r0 + 120);
+        gw.addColorStop(0, 'rgba(0,0,0,0)');
+        gw.addColorStop(0.5, 'rgba(255,255,255,1)');
+        gw.addColorStop(1, 'rgba(0,0,0,0)');
+        rc.globalCompositeOperation = 'source-in';
+        rc.fillStyle = gw;
+        rc.fillRect(0, 0, W, H);
+        ctx.globalAlpha = 0.25 * (1 - onda);
+        ctx.drawImage(raiosTela, 0, 0);
+        ctx.globalAlpha = 1;
+      }
+    }
+    halo(ctx, hx, hy, 70, '#ffffff', 0.35 * lim((tc - 3.4) / 1) * (0.8 + 0.2 * Math.sin(t * 2)));
     ctx.restore();
   };
 

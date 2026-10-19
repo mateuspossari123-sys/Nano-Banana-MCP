@@ -281,6 +281,7 @@
 
     midiaDe(fundo) {
       if (!fundo || typeof fundo !== 'object') return null;
+      if (fundo.misericordia) return null;
       if (fundo.rostos) {
         (window.ROSTOS || []).forEach(src => this.imagem(src));
         return null;
@@ -615,6 +616,8 @@
         this.desenharGaleria(p, f, cena, cores, t, b);
       } else if (f.mosaico) {
         this.desenharMosaico(p, f, cena, cores, t, b);
+      } else if (f.misericordia) {
+        window.LED.misericordia(p, this.W, this.H, t, f, this);
       } else if (f.rostos) {
         this.desenharRostos(p, f, cena, cores, t, b, !!(cena.faixa || this.estado.faixa));
       } else {
