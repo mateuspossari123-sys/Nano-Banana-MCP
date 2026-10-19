@@ -29,6 +29,9 @@
  *   logo        true → mostra o logo (ROTEIRO.logo) no painel central
  *   entrada     vinheta que faz a passagem para esta cena: 'explosao' | 'revelacao' | 'cortina' | 'raios'
  *   automatico  vinheta disparada sozinha a cada N batidas: { vinheta: 'raios', aCada: 16 }
+ *   animarEntrada  true → a cena se monta em 5 s (sai do escuro, imagem desliza, textos em
+ *               sequência, laterais por último) e depois fica parada
+ *   textoLado   'direita' | 'esquerda' → texto só numa metade do central (bom para retratos)
  *
  * Detalhes dos efeitos e vinhetas: show.js.
  */
@@ -228,7 +231,7 @@ window.ROTEIRO = {
     },
     {
       nome: 'Reinaldo Alguz (fundador)',
-      entrada: 'cortina',
+      animarEntrada: true,   // monta em 5 s (foto, nome, laterais) e depois fica parado
       fundo: { imagem: 'midia/reinaldo-central.jpg', modo: 'central' },
       textoLado: 'direita',
       titulo: 'Reinaldo\n*Alguz*',

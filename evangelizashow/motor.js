@@ -185,6 +185,9 @@
     },
   };
 
+  const limM = v => Math.max(0, Math.min(1, v));
+  const suaveM = v => v * v * (3 - 2 * v);
+
   function desenharCover(ctx, el, iw, ih, r) {
     const s = Math.max(r.w / iw, r.h / ih);
     const w = iw * s, h = ih * s;
@@ -593,6 +596,8 @@
     desenharCena(p, cena, t, agora) {
       const cores = cena.cores || this.rot.cores || CORES_PADRAO;
       const f = cena.fundo || 'sim', b = this.batida();
+      // Segundos desde que a cena entrou (para as entradas animadas).
+      const tE = (Date.now() - this.entradaEm) / 1000;
 
       // "Luz" da letra (0 = noite, 1 = dia): cada slide pode definir a sua, e quem não
       // define herda a do slide anterior. A mudança é suave, para o céu clarear aos poucos.
@@ -629,14 +634,55 @@
           m.drawImage(el, 0, 0, this.mapa.width, this.mapa.height);
           this.cfg.telas.forEach(({ palco: r, saida: s }) => p.drawImage(this.mapa, s.x, s.y, r.w, r.h, r.x, r.y, r.w, r.h));
         } else if (d) {
-          desenharCover(p, el, d[0], d[1], modo === 'central' ? this.central : { x: 0, y: 0, w: this.W, h: this.H });
+          const alvoR = modo === 'central' ? this.central : { x: 0, y: 0, w: this.W, h: this.H };
+          if (cena.animarEntrada) {
+            // Entrada animada: a imagem desliza de leve da esquerda, com zoom, saindo do escuro.
+            const e = suaveM(limM((tE - 0.3) / 2));
+            p.save();
+            p.beginPath();
+            p.rect(alvoR.x, alvoR.y, alvoR.w, alvoR.h);
+            p.clip();
+            p.globalAlpha = e;
+            const z = 1.08 - 0.08 * e, dx = -50 * (1 - e);
+            desenharCover(p, el, d[0], d[1], {
+              x: alvoR.x + dx - (alvoR.w * (z - 1)) / 2, y: alvoR.y - (alvoR.h * (z - 1)) / 2,
+              w: alvoR.w * z, h: alvoR.h * z,
+            });
+            p.restore();
+          } else {
+            desenharCover(p, el, d[0], d[1], alvoR);
+          }
         }
       }
 
       this.desenharVinheta(p, true);
 
       const faixa = cena.faixa || (this.estado.faixa && (this.rot.faixaPadrao || '{logo}   Evangelizashow   ✦   '));
-      if (faixa) this.desenharFaixa(p, faixa, t);
+      if (cena.animarEntrada) {
+        // Antes da foto, o palco sai do escuro.
+        const escuro = 1 - suaveM(limM(tE / 1));
+        if (escuro > 0) {
+          p.save();
+          p.globalAlpha = escuro;
+          p.fillStyle = '#000';
+          p.fillRect(0, 0, this.W, this.H);
+          p.restore();
+        }
+      }
+      if (faixa) {
+        p.save();
+        // Na entrada animada, as laterais acendem por último (3,5 s a 5 s).
+        if (cena.animarEntrada) p.globalAlpha = suaveM(limM((tE - 3.5) / 1.5));
+        if (p.globalAlpha > 0) this.desenharFaixa(p, faixa, t);
+        p.restore();
+        if (cena.animarEntrada && tE < 5) {
+          p.save();
+          p.globalAlpha = 1 - suaveM(limM((tE - 3.5) / 1.5));
+          p.fillStyle = '#000';
+          this.cfg.telas.filter(tl => tl.id !== 'C').forEach(({ palco: r }) => p.fillRect(r.x, r.y, r.w, r.h));
+          p.restore();
+        }
+      }
 
       // Sobre fotos, o texto vai para a parte de baixo para não cobrir rostos e cartazes.
       const C = this.central, margem = 36, galeria = !!f.imagens, mosaico = !!(f.mosaico || f.rostos);
@@ -703,8 +749,32 @@
       }
       p.save();
       p.globalAlpha = Math.min(1, (agora - this.linhaEm) / 300);
+      let ordem = 0;
       blocos.forEach(b => {
         const r = { x: A.x + margem, y: y, w: A.w - 2 * margem, h: b.h * escala };
+        if (cena.animarEntrada && !b.logo) {
+          // Cada linha entra em sequência (a partir de 1,6 s), subindo de leve.
+          const n = b.linhas.length, base = p.globalAlpha;
+          b.linhas.forEach((l, k) => {
+            const e = suaveM(limM((tE - 1.6 - ordem * 0.65) / 0.8));
+            ordem++;
+            if (e <= 0) return;
+            p.save();
+            p.globalAlpha = base * e;
+            const sub = { x: r.x, y: r.y + (r.h / n) * k + 18 * (1 - e), w: r.w, h: r.h / n };
+            texto(p, [l], sub, b.o);
+            // Brilho rápido quando a linha chega.
+            const brilho = limM((tE - 1.6 - (ordem - 1) * 0.65 - 0.4) / 0.25) * (1 - limM((tE - 1.6 - (ordem - 1) * 0.65 - 0.65) / 0.6));
+            if (brilho > 0) {
+              p.globalCompositeOperation = 'lighter';
+              p.globalAlpha = 0.5 * brilho;
+              texto(p, [l], sub, b.o);
+            }
+            p.restore();
+          });
+          y += (b.h + espaco) * escala;
+          return;
+        }
         if (b.logo) {
           const s = Math.min(r.w / this.logo.naturalWidth, r.h / this.logo.naturalHeight);
           const w = this.logo.naturalWidth * s, h = this.logo.naturalHeight * s;
